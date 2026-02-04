@@ -27,16 +27,23 @@
                         </svg>
                     </button>
 
-                    <button class="btn btn-sm btn-circle btn-ghost hidden lg:inline-flex" title="Open Player"
-                        @click="openPlayerModal = true">
+                    <button
+                        class="btn btn-sm btn-ghost gap-2 px-3 border border-white/5 hover:bg-white/5 text-gray-400 hover:text-white"
+                        @click="openPlaylistModal = true">
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
-                            stroke="currentColor" class="w-5 h-5">
+                            stroke="currentColor" class="w-4 h-4">
                             <path stroke-linecap="round" stroke-linejoin="round"
-                                d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" />
+                                d="M3.75 12h16.5m-16.5 3.75h16.5M3.75 19.5h16.5M5.625 4.5h12.75a1.875 1.875 0 010 3.75H5.625a1.875 1.875 0 010-3.75z" />
                         </svg>
+                        <span class="text-xs font-bold uppercase tracking-widest hidden sm:inline">Playlist</span>
+                        <div class="badge badge-sm badge-outline border-white/20 text-[10px] opacity-60">{{
+                            currentPlaylistId || '...' }}</div>
                     </button>
-                    <button class="btn btn-sm btn-circle btn-ghost hidden lg:inline-flex" title="Settings"
-                        @click="openSettingsModal = true">
+
+                    <div class="h-4 w-[1px] bg-white/10 mx-1 hidden lg:block"></div>
+
+                    <button class="btn btn-sm btn-circle btn-ghost hidden md:inline-flex" title="Open Player"
+                        @click="openPlayerModal = true">
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
                             stroke="currentColor" class="w-5 h-5">
                             <path stroke-linecap="round" stroke-linejoin="round"
@@ -58,7 +65,7 @@
                         </svg>
                     </button>
 
-                    <div class="join border border-white/10 rounded-lg overflow-hidden hidden lg:flex">
+                    <div class="join border border-white/10 rounded-lg overflow-hidden hidden md:flex">
                         <button class="join-item btn btn-sm border-0"
                             :class="appMode === 'play' ? 'btn-primary text-white' : 'btn-ghost text-gray-400'"
                             @click="setMode('play')">PLAY</button>
@@ -85,8 +92,9 @@
                     <!-- Left: Mini Preview & Controls -->
                     <div class="flex items-center gap-3 w-1/3">
                         <div
-                            class="w-16 h-9 bg-black rounded overflow-hidden border border-white/10 relative flex-shrink-0">
-                            <img v-if="playingItem" :src="playingItem.thumbnail"
+                            class="w-16 h-9 bg-black rounded overflow-hidden border border-white/10 relative flex-shrink-0 flex items-center justify-center">
+                            <img v-if="playingItem && playingItem.thumbnail"
+                                :src="playingItem.thumbnail.startsWith('/') ? `http://localhost:3000${playingItem.thumbnail}` : playingItem.thumbnail"
                                 class="w-full h-full object-cover opacity-80" />
                             <div v-else class="w-full h-full flex items-center justify-center text-[8px] text-gray-600">
                                 NO SIGNAL</div>
@@ -141,24 +149,23 @@
             </div>
         </div>
 
-        <!-- RIGHT: Settings & Preview -->
+        <!-- RIGHT: Settings -->
         <div class="fixed inset-y-0 right-0 z-30 w-80 bg-base-200 border-l border-white/5 transform transition-transform duration-300 lg:relative lg:translate-x-0 lg:w-[30%] lg:flex flex-col h-full"
             :class="showSettings ? 'translate-x-0' : 'translate-x-full'">
-            <!-- Top Half: Preview -->
-            <div class="h-[40%] p-4 bg-black flex items-center justify-center relative">
-                <PlayerPreview />
-                <button class="absolute top-2 right-2 btn btn-xs btn-circle btn-ghost lg:hidden text-white bg-black/50"
-                    @click="showSettings = false">x</button>
-            </div>
 
-            <!-- Bottom Half: Settings -->
-            <div class="h-[60%] border-t border-white/5 flex flex-col min-h-0">
+            <!-- Mobile Close Button -->
+            <button
+                class="absolute top-2 right-2 z-10 btn btn-xs btn-circle btn-ghost lg:hidden text-white bg-black/20 hover:bg-black/40"
+                @click="showSettings = false">✕</button>
+
+            <div class="flex-1 flex flex-col min-h-0">
                 <ItemSettings />
             </div>
         </div>
 
         <GeneralSettingsModal :open="openSettingsModal" @close="openSettingsModal = false" />
         <PlayerWindowModal :open="openPlayerModal" @close="openPlayerModal = false" />
+        <PlaylistSelectorModal :open="openPlaylistModal" @close="openPlaylistModal = false" />
 
     </div>
 </template>
@@ -170,6 +177,7 @@ import ItemSettings from '../settings/ItemSettings.vue';
 import PlayerPreview from '../player/PlayerPreview.vue';
 import GeneralSettingsModal from '../modals/GeneralSettingsModal.vue';
 import PlayerWindowModal from '../modals/PlayerWindowModal.vue';
+import PlaylistSelectorModal from '../modals/PlaylistSelectorModal.vue';
 import { onMounted, ref, computed, watch } from 'vue';
 import { useStore } from 'vuex';
 
@@ -178,11 +186,13 @@ const showLibrary = ref(false);
 const showSettings = ref(false);
 const openSettingsModal = ref(false);
 const openPlayerModal = ref(false);
+const openPlaylistModal = ref(false);
 
-const appMode = computed(() => store.state.mockData.appMode);
-const selectedItemId = computed(() => store.state.mockData.selectedItemId);
-const playingItem = computed(() => store.getters['mockData/playingItem']);
-const playbackProgress = computed(() => store.state.mockData.playbackProgress);
+const appMode = computed(() => store.state.appData.appMode);
+const selectedItemId = computed(() => store.state.appData.selectedItemId);
+const playingItem = computed(() => store.getters['appData/playingItem']);
+const playbackProgress = computed(() => store.state.appData.playbackProgress);
+const currentPlaylistId = computed(() => store.state.playlists.currentPlaylistId);
 
 const isPlaying = ref(false);
 
@@ -193,7 +203,7 @@ watch(selectedItemId, (newId) => {
 });
 
 const setMode = (mode) => {
-    store.dispatch('mockData/setAppMode', mode);
+    store.dispatch('appData/setAppMode', mode);
 };
 
 const togglePlay = () => {
@@ -201,9 +211,9 @@ const togglePlay = () => {
     // Mock play logic
     if (isPlaying.value && !playingItem.value) {
         // If nothing playing, play first item
-        const items = store.getters['mockData/allPlaylistItems'];
+        const items = store.getters['appData/allPlaylistItems'];
         if (items.length > 0) {
-            store.dispatch('mockData/playItem', items[0].id);
+            store.dispatch('appData/playItem', items[0].id);
         }
     }
 };
@@ -220,8 +230,30 @@ const closeAll = () => {
     showSettings.value = false;
 };
 
-onMounted(() => {
-    store.dispatch('mockData/generateData');
+watch(currentPlaylistId, (newId) => {
+    if (newId) {
+        const url = new URL(window.location);
+        url.searchParams.set('playlistId', newId);
+        window.history.pushState({}, '', url);
+    }
+});
+
+onMounted(async () => {
+    await store.dispatch('playlists/refreshPlaylists');
+
+    // Check URL for playlistId
+    const urlParams = new URLSearchParams(window.location.search);
+    const playlistId = urlParams.get('playlistId');
+
+    if (playlistId) {
+        store.dispatch('playlists/loadPlaylist', playlistId);
+    } else {
+        // Try to load default or first available?
+        // Let's try 'default' first as per typical behavior
+        store.dispatch('playlists/loadPlaylist', 'default');
+    }
+
+    store.dispatch('appData/initialize');
 });
 </script>
 

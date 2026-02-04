@@ -1,8 +1,10 @@
 import { createStore } from 'vuex'
-import mockData from './modules/mockData'
+import appData from './modules/appData'
+import playlists from './modules/playlists'
 
 export default createStore({
     modules: {
-        mockData
+        appData,
+        playlists
     }
 })

@@ -4,9 +4,11 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "manager": "npm run dev --prefix manager",
-    "player": "npm run dev --prefix player",
-    "server": "npm run dev --prefix server"
+    "run:manager": "npm run dev --prefix manager",
+    "run:player": "npm run dev --prefix player",
+    "run:server": "npm run dev --prefix server",
+    "build:manager": "npm run build --prefix manager",
+    "build:player": "npm run build --prefix player"
   },
   "author": "",
   "license": "ISC",

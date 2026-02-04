@@ -43,7 +43,7 @@ const props = defineProps({
 const emit = defineEmits(['close']);
 const store = useStore();
 
-const currentSettings = computed(() => store.state.mockData.playerSettings);
+const currentSettings = computed(() => store.state.appData.playerSettings);
 
 const screenId = ref(currentSettings.value.screenId);
 const fullscreen = ref(currentSettings.value.fullscreen);
@@ -56,12 +56,22 @@ watch(() => props.open, (isOpen) => {
 });
 
 const openPlayer = () => {
-    store.dispatch('mockData/updatePlayerSettings', {
+    store.dispatch('appData/updatePlayerSettings', {
         screenId: screenId.value,
         fullscreen: fullscreen.value
     });
-    // Mock opening window
-    alert(`Opening player on ${screenId.value} (Fullscreen: ${fullscreen.value})`);
+
+    // Construct Player URL
+    // We want to open /player/index.html
+    // but pass playlist ID
+    const playlistId = store.state.playlists.currentPlaylistId || 'default';
+    const url = `/player/index.html?playlistId=${playlistId}&screenId=${screenId.value}`;
+
+    const features = fullscreen.value
+        ? 'width=1920,height=1080' // Fullscreen isn't directly usable via window.open without user interaction, but we can set size
+        : 'width=1280,height=720';
+
+    window.open(url, 'RecuePlayer', features);
     emit('close');
 };
 </script>

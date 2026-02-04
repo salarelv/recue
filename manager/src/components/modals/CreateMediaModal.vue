@@ -33,6 +33,15 @@
                     </svg>
                     Image (URL)
                 </button>
+                <button class="btn btn-outline btn-success h-auto py-4 flex flex-col gap-2 relative overflow-hidden">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
+                        stroke="currentColor" class="w-8 h-8">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                            d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+                    </svg>
+                    Upload File
+                    <input type="file" @change="handleFileUpload" class="absolute inset-0 opacity-0 cursor-pointer" />
+                </button>
             </div>
 
             <!-- Step 2: Configuration -->
@@ -55,19 +64,25 @@
 
                 <div class="form-control">
                     <label class="label text-xs uppercase text-gray-500 font-bold">URL</label>
-                    <input type="url" v-model="formData.url" placeholder="https://..."
-                        class="input input-bordered bg-base-300 border-white/10 focus:border-accent text-white" />
+                    <div class="relative">
+                        <input type="url" v-model="formData.url" @blur="handleUrlBlur" placeholder="https://..."
+                            class="input input-bordered bg-base-300 border-white/10 focus:border-accent text-white w-full pr-10"
+                            :disabled="isLoading" />
+                        <div v-if="isLoading" class="absolute right-3 top-3">
+                            <span class="loading loading-spinner loading-xs text-accent"></span>
+                        </div>
+                    </div>
                 </div>
 
-                <div class="form-control" v-if="selectedType !== 'image'">
-                    <label class="label text-xs uppercase text-gray-500 font-bold">Duration (s)</label>
+                <div class="form-control" v-if="selectedType !== 'image' && selectedType !== 'youtube'">
+                    <label class="label text-xs uppercase text-gray-500 font-bold">Duration (ms)</label>
                     <input type="number" v-model.number="formData.duration"
                         class="input input-bordered bg-base-300 border-white/10 focus:border-accent text-white" />
                 </div>
 
                 <div class="modal-action">
                     <button class="btn btn-primary w-full" @click="create" :disabled="!isValid">Create {{ selectedType
-                        }}</button>
+                    }}</button>
                 </div>
             </div>
 
@@ -80,6 +95,7 @@
 
 <script setup>
 import { ref, computed, watch, reactive } from 'vue';
+import api from '../../services/api';
 
 const props = defineProps({
     open: Boolean
@@ -88,6 +104,7 @@ const props = defineProps({
 const emit = defineEmits(['close', 'create']);
 
 const selectedType = ref(null);
+const isLoading = ref(false);
 const formData = reactive({
     name: '',
     url: '',
@@ -101,18 +118,42 @@ watch(() => props.open, (newVal) => {
             selectedType.value = null;
             formData.name = '';
             formData.url = '';
-            formData.duration = 10;
+            formData.duration = 10000;
+            isLoading.value = false;
         }, 300);
     }
 });
 
 const isValid = computed(() => {
-    return formData.name.length > 0 && formData.url.length > 0;
+    return formData.name.length > 0 && formData.url.length > 0 && !isLoading.value;
 });
 
 const selectType = (type) => {
     selectedType.value = type;
-    formData.duration = type === 'website' ? 30 : 60; // Defaults
+    formData.duration = type === 'website' ? 30000 : 60000; // Defaults in ms
+};
+
+const handleUrlBlur = async () => {
+    if (selectedType.value === 'youtube' && formData.url) {
+        isLoading.value = true;
+        try {
+            const info = await api.getYouTubeInfo(formData.url);
+            if (info) {
+                formData.name = info.title;
+                if (info.duration) {
+                    formData.duration = info.duration;
+                }
+                // Store thumbnail somewhere? 
+                // The backend oEmbed fetch returns thumbnail_url, we can use it on create.
+                // We'll store it in a temp variable to use in create()
+                formData._tempThumbnail = info.thumbnail;
+            }
+        } catch (e) {
+            console.error("Failed to fetch YouTube info", e);
+        } finally {
+            isLoading.value = false;
+        }
+    }
 };
 
 const close = () => {
@@ -126,12 +167,20 @@ const create = () => {
         url: formData.url,
         duration: formData.duration,
         // Mock thumbnail based on type
-        thumbnail: selectedType.value === 'youtube'
+        thumbnail: formData._tempThumbnail || (selectedType.value === 'youtube'
             ? 'https://img.youtube.com/vi/dQw4w9WgXcQ/mqdefault.jpg'
-            : `https://picsum.photos/seed/${Date.now()}/200/120`
+            : `https://picsum.photos/seed/${Date.now()}/200/120`)
     };
 
     emit('create', newItem);
     close();
+};
+
+const handleFileUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+        emit('upload', file);
+        close();
+    }
 };
 </script>

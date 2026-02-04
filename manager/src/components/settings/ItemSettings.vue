@@ -35,7 +35,7 @@
       <div class="space-y-4">
 
         <div class="form-control">
-          <label class="label text-xs uppercase text-gray-500 font-bold">Duration (s)</label>
+          <label class="label text-xs uppercase text-gray-500 font-bold">Duration (ms)</label>
           <input type="number" :value="item.duration" @input="update('duration', +$event.target.value)"
             class="input input-sm input-bordered bg-base-300 border-white/10 text-white focus:border-accent" />
         </div>
@@ -44,9 +44,9 @@
           <label class="label text-xs uppercase text-gray-500 font-bold">Transition</label>
           <select :value="item.transition" @change="update('transition', $event.target.value)"
             class="select select-sm select-bordered bg-base-300 border-white/10 text-white focus:border-accent">
-            <option value="cut">Cut</option>
-            <option value="fade">Fade In/Out</option>
-            <option value="crossfade">Crossfade</option>
+            <option v-for="effect in availableEffects" :key="effect" :value="effect">
+              {{ effect.charAt(0).toUpperCase() + effect.slice(1) }}
+            </option>
           </select>
         </div>
 
@@ -88,13 +88,14 @@ import { useStore } from 'vuex';
 import MediaSelectorModal from '../modals/MediaSelectorModal.vue';
 
 const store = useStore();
-const item = computed(() => store.getters['mockData/selectedItem']);
-const appMode = computed(() => store.state.mockData.appMode);
+const item = computed(() => store.getters['appData/selectedItem']);
+const appMode = computed(() => store.state.appData.appMode);
+const availableEffects = computed(() => store.state.appData.availableEffects);
 const showModal = ref(false);
 
 const update = (field, value) => {
   if (item.value) {
-    store.dispatch('mockData/updateItem', {
+    store.dispatch('appData/updateItem', {
       id: item.value.id,
       updates: { [field]: value }
     });
@@ -104,7 +105,7 @@ const update = (field, value) => {
 const replaceMedia = (newMedia) => {
   if (item.value) {
     // Update name, type, thumbnail, and potentially duration
-    store.dispatch('mockData/updateItem', {
+    store.dispatch('appData/updateItem', {
       id: item.value.id,
       updates: {
         name: newMedia.name,

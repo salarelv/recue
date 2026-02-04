@@ -38,8 +38,8 @@ const props = defineProps({
 const emit = defineEmits(['close']);
 const store = useStore();
 
-const libraryItems = computed(() => store.getters['mockData/allLibraryItems']);
-const currentSettings = computed(() => store.state.mockData.generalSettings);
+const libraryItems = computed(() => store.getters['appData/allLibraryItems']);
+const currentSettings = computed(() => store.state.appData.generalSettings);
 
 const defaultItemId = ref(currentSettings.value.defaultItemId);
 
@@ -50,7 +50,7 @@ watch(() => props.open, (isOpen) => {
 });
 
 const save = () => {
-    store.dispatch('mockData/updateGeneralSettings', {
+    store.dispatch('appData/updateGeneralSettings', {
         defaultItemId: defaultItemId.value
     });
     emit('close');

@@ -12,11 +12,12 @@ The server and manager are built with NodeJS and ElectronJS. The player and mana
 
 ## Electron app
 
-The is built into a Electron app. It has a UI for managing the playlist. App can be started with `npm run start`. It serves the files to the player and manager as static files. The server runs as process in the electron app and is started with the electron app. It opens a window for the manager and a window for the player. It allows the user to choose which screen to use for the player. Player can be fullscreen or windowed. There is also a button to open the manager in a new window.
+The is built into a Electron app. It has a UI for managing the playlist. App can be started with `npm run run:manager`. Build manager app with `npm run build:manager`. It serves the files to the player and manager as static files. The server runs as process in the electron app and is started with the electron app. It opens a window for the manager and a window for the player. It allows the user to choose which screen to use for the player. Player can be fullscreen or windowed. There is also a button to open the manager in a new window.
 
 ## Player
 
-The player is a HTML5 player that plays the media files. It can be started with `npm run player`. Player communicates with the server via WebSockets. A playlist ID is used to identify the playlist. The ID is passed as a query parameter to the player. The player is a fullscreen app and media fills the screen. 
+The player is a HTML5 player that plays the media files. It can be started with `npm run run:player`. Build player app with `npm run build:player`. Always build player app after making changes to the player app. Player communicates with the server via WebSockets. A playlist ID is used to identify the playlist. The ID is passed as a query parameter to the player. The player is a fullscreen app and media fills the screen. 
+
 The player will support the following media files:
 
 - mp4
@@ -49,7 +50,7 @@ When the server sends a command to the player, the player will execute it. Such 
 
 ## Manager
 
-The manager is a web app that allows to manage the playlist. It can be started with `npm run manager`. Manager communicates with the server via WebSockets.  The manager is a desktop app and is built with VueJS 3 and Vite. Player will use TailwindCSS and DaisyUI for styling. It doesnt use TailwindCSS colors but use DaisyUI colors. The manager has the following parts:
+The manager is a web app that allows to manage the playlist. It can be started with `npm run run:manager`. Build manager app with `npm run build:manager`. Manager communicates with the server via WebSockets.  The manager is a desktop app and is built with VueJS 3 and Vite. Player will use TailwindCSS and DaisyUI for styling. It doesnt use TailwindCSS colors but use DaisyUI colors. The manager has the following parts:
 
 - Playlist editor
 - Media library
@@ -78,7 +79,7 @@ Changes are automatically sent to the server.
 
 ## Server
 
-The server is a NodeJS app that serves the playlist to the player. It can be started with `npm run server`. Server communicates with the player via WebSockets.
+The server is a NodeJS app that serves the playlist to the player. It can be started with `npm run run:server`. Server communicates with the player via WebSockets.
 
 A playlist is a JSON file that contains the playlist items. The playlist items are stored in the server and are accessible via WebSockets.
 
