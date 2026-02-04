@@ -1,0 +1,45 @@
+@import "tailwindcss";
+@import "@fontsource/inter";
+@plugin "daisyui";
+
+:root {
+    font-family: 'Inter', sans-serif;
+    --color-base-100: #1d232a;
+    --color-base-200: #191e24;
+    --color-base-300: #15191e;
+    --color-primary: #646cff;
+    --color-secondary: #d926a9;
+    --color-accent: #1fb2a6;
+}
+
+body {
+    background-color: var(--color-base-300);
+    color: #a6adbb;
+    @apply antialiased overflow-hidden h-screen w-screen selection:bg-[var(--color-accent)] selection:text-white;
+}
+
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--color-base-200);
+}
+
+::-webkit-scrollbar-thumb {
+    background: #4b5563;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #6b7280;
+}
+
+.glass-panel {
+    @apply bg-base-200/80 backdrop-blur-md border border-white/5 shadow-xl;
+}
+
+.btn-icon {
+    @apply btn btn-ghost btn-sm btn-square text-lg;
+}

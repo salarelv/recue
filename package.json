@@ -1,0 +1,17 @@
+{
+  "name": "recue",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "manager": "npm run dev --prefix manager",
+    "player": "npm run dev --prefix player",
+    "server": "npm run dev --prefix server"
+  },
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "devDependencies": {
+    "electron": "^40.1.0"
+  }
+}
