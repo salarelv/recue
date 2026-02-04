@@ -80,7 +80,7 @@ class WebSocketService {
         this.emit(type, payload);
 
         // Also emit specific command types if it's a command
-        if (type === 'command:player') {
+        if (type === 'control:command') {
             this.emit('command', payload);
         }
     }

@@ -18,14 +18,18 @@ export default {
             fullscreen: true
         },
         playingItemId: null,
+        playbackStatus: 'stopped', // 'playing', 'stopped'
         playbackProgress: 0, // 0 to 100
-        availableEffects: ['cut', 'fade', 'crossfade']
+        availableEffects: ['cut', 'fade', 'crossfade'],
+        itemStatuses: {}, // { mediaId: 'loading' | 'ready' | 'error' }
+        playerConnected: false
     }),
     getters: {
         allLibraryItems: state => state.libraryItems,
         allPlaylistItems: state => state.playlistItems,
         selectedItem: state => state.playlistItems.find(item => item.id === state.selectedItemId),
         playingItem: state => state.playlistItems.find(item => item.id === state.playingItemId),
+        isPlaying: state => state.playbackStatus === 'playing',
         totalDuration: state => state.playlistItems.reduce((acc, item) => acc + item.duration, 0)
     },
     actions: {
@@ -60,7 +64,8 @@ export default {
                 id: `pl-${Date.now()}`,
                 mediaId: item.id, // Store the original library ID
                 duration: defaults.defaultDuration || item.duration,
-                transition: defaults.defaultEffect || 'cut'
+                transition: defaults.defaultEffect || 'cut',
+                volume: 1.0
             });
             dispatch('savePlaylist');
         },
@@ -97,6 +102,20 @@ export default {
         },
         updateProgress({ commit }, progress) {
             commit('SET_PLAYBACK_PROGRESS', progress);
+        },
+        playNext({ dispatch, state }) {
+            const currentIdx = state.playlistItems.findIndex(i => i.id === state.playingItemId);
+            const nextIdx = currentIdx + 1;
+            if (nextIdx < state.playlistItems.length) {
+                dispatch('playItem', state.playlistItems[nextIdx].id);
+            }
+        },
+        playPrevious({ dispatch, state }) {
+            const currentIdx = state.playlistItems.findIndex(i => i.id === state.playingItemId);
+            const prevIdx = currentIdx - 1;
+            if (prevIdx >= 0) {
+                dispatch('playItem', state.playlistItems[prevIdx].id);
+            }
         },
         async uploadFile({ dispatch, rootState }, file) {
             const playlistId = rootState.playlists.currentPlaylistId;
@@ -216,6 +235,15 @@ export default {
         },
         ADD_LIBRARY_ITEM(state, item) {
             state.libraryItems.unshift(item);
+        },
+        SET_ITEM_STATUSES(state, statuses) {
+            state.itemStatuses = statuses;
+        },
+        SET_PLAYER_CONNECTED(state, connected) {
+            state.playerConnected = connected;
+        },
+        SET_PLAYER_STATUS(state, status) {
+            state.playbackStatus = status;
         }
     }
 }

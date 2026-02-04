@@ -33,39 +33,54 @@
 
       <!-- Settings Form -->
       <div class="space-y-4">
+        <!-- Grid fields -->
+        <div class="grid grid-cols-2 gap-4">
+          <!-- Transition -->
+          <div class="form-control">
+            <label class="label text-xs uppercase text-gray-500 font-bold">Transition</label>
+            <select :value="item.transition" @change="update('transition', $event.target.value)"
+              class="select select-sm select-bordered bg-base-300 border-white/10 text-white focus:border-accent">
+              <option v-for="effect in availableEffects" :key="effect" :value="effect">
+                {{ effect.charAt(0).toUpperCase() + effect.slice(1) }}
+              </option>
+            </select>
+          </div>
 
-        <div class="form-control">
-          <label class="label text-xs uppercase text-gray-500 font-bold">Duration (ms)</label>
-          <input type="number" :value="item.duration" @input="update('duration', +$event.target.value)"
-            class="input input-sm input-bordered bg-base-300 border-white/10 text-white focus:border-accent" />
+          <!-- Duration -->
+          <div class="form-control">
+            <label class="label text-xs uppercase text-gray-500 font-bold">Duration (ms)</label>
+            <input type="number" :value="item.duration" @input="update('duration', +$event.target.value)"
+              class="input input-sm input-bordered bg-base-300 border-white/10 text-white focus:border-accent" />
+          </div>
+
+          <!-- Start -->
+          <div class="form-control">
+            <label class="label text-xs uppercase text-gray-500 font-bold">Start</label>
+            <select :value="item.start || 'auto'" @change="update('start', $event.target.value)"
+              class="select select-sm select-bordered bg-base-300 border-white/10 text-white focus:border-accent"
+              :disabled="appMode === 'play'">
+              <option value="auto">Auto</option>
+              <option value="cue">Cue</option>
+            </select>
+          </div>
+
+          <!-- Loop -->
+          <div class="form-control">
+            <label class="label text-xs uppercase text-gray-500 font-bold">Loop</label>
+            <div class="flex items-center h-8">
+              <input type="checkbox" :checked="item.loop" @change="update('loop', $event.target.checked)"
+                class="checkbox checkbox-sm checkbox-accent" :disabled="appMode === 'play'" />
+            </div>
+          </div>
         </div>
 
-        <div class="form-control">
-          <label class="label text-xs uppercase text-gray-500 font-bold">Transition</label>
-          <select :value="item.transition" @change="update('transition', $event.target.value)"
-            class="select select-sm select-bordered bg-base-300 border-white/10 text-white focus:border-accent">
-            <option v-for="effect in availableEffects" :key="effect" :value="effect">
-              {{ effect.charAt(0).toUpperCase() + effect.slice(1) }}
-            </option>
-          </select>
-        </div>
-
-        <div class="form-control">
-          <label class="label cursor-pointer justify-start gap-4">
-            <span class="label-text text-xs uppercase text-gray-500 font-bold">Loop</span>
-            <input type="checkbox" :checked="item.loop" @change="update('loop', $event.target.checked)"
-              class="checkbox checkbox-sm checkbox-accent" :disabled="appMode === 'play'" />
+        <!-- Volume (Full Width) -->
+        <div class="form-control pt-2 border-t border-white/5" v-if="item.type === 'video' || item.type === 'youtube'">
+          <label class="label text-xs uppercase text-gray-500 font-bold">
+            Volume ({{ Math.round((item.volume ?? 1) * 100) }}%)
           </label>
-        </div>
-
-        <div class="form-control">
-          <label class="label text-xs uppercase text-gray-500 font-bold">Start Mode</label>
-          <select :value="item.startMode || 'auto'" @change="update('startMode', $event.target.value)"
-            class="select select-sm select-bordered bg-base-300 border-white/10 text-white focus:border-accent"
-            :disabled="appMode === 'play'">
-            <option value="auto">Auto Start</option>
-            <option value="manual">Manual</option>
-          </select>
+          <input type="range" min="0" max="1" step="0.05" :value="item.volume ?? 1"
+            @input="update('volume', +$event.target.value)" class="range range-xs range-accent" />
         </div>
 
       </div>

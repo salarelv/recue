@@ -111,7 +111,9 @@ const selectDefaultMedia = (media) => {
         id: media.id,
         name: media.name,
         type: media.type,
-        thumbnail: media.thumbnail
+        thumbnail: media.thumbnail,
+        path: media.path,
+        url: media.url
     };
     showMediaSelector.value = false;
 };

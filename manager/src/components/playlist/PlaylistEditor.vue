@@ -23,8 +23,9 @@
     <PlaylistSettingsModal :open="showSettingsModal" @close="showSettingsModal = false" />
 
     <!-- Draggable List -->
-    <draggable v-model="playlistItems" item-key="id" class="flex-1 overflow-y-auto p-2 space-y-2 pb-20"
-      ghost-class="opacity-50" drag-class="scale-105" :disabled="appMode === 'play'">
+    <draggable v-model="playlistItems" item-key="id"
+      class="flex-1 overflow-x-hidden overflow-y-auto p-2 space-y-2 pb-20" ghost-class="opacity-50"
+      drag-class="scale-105" :disabled="appMode === 'play'">
       <template #item="{ element: item, index }">
         <div class="relative flex items-center p-2 rounded-lg border transition-all group select-none mb-2" :class="[
           getItemStatus(item, index) === 'active' ? 'bg-white/10 border-accent scale-[1.02] shadow-lg z-10' : '',
@@ -103,6 +104,14 @@
               <span class="bg-base-300 px-1.5 rounded text-gray-400 uppercase tracking-tighter">{{ item.transition
                 }}</span>
 
+              <!-- Item Status Dot -->
+              <span class="w-2 h-2 rounded-full transition-colors mx-1" :class="{
+                'bg-yellow-500 shadow-[0_0_8px_rgba(234,179,8,0.5)]': itemStatuses[item.id] === 'loading',
+                'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]': itemStatuses[item.id] === 'ready',
+                'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]': itemStatuses[item.id] === 'error',
+                'bg-gray-600': !itemStatuses[item.id]
+              }" :title="itemStatuses[item.id] || 'unknown'"></span>
+
               <!-- Status Icons -->
               <span v-if="item.loop" class="text-accent" title="Looping enabled">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
@@ -111,7 +120,7 @@
                     d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
                 </svg>
               </span>
-              <span v-if="item.startMode === 'manual'" class="text-amber-500" title="Manual start required">
+              <span v-if="item.start === 'cue'" class="text-amber-500" title="Manual start required">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
                   stroke="currentColor" class="w-3 h-3">
                   <path stroke-linecap="round" stroke-linejoin="round"
@@ -157,6 +166,7 @@ const totalDuration = computed(() => store.getters['appData/totalDuration']);
 const selectedId = computed(() => store.state.appData.selectedItemId);
 const playingItemId = computed(() => store.state.appData.playingItemId);
 const appMode = computed(() => store.state.appData.appMode);
+const itemStatuses = computed(() => store.state.appData.itemStatuses);
 
 const currentPlaylistName = computed({
   get: () => store.state.playlists.currentPlaylistName,

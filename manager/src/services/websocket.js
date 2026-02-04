@@ -70,8 +70,24 @@ class WebSocketService {
                 break;
             case 'player:state':
                 this.store.commit('playlists/SET_ACTIVE_PLAYLIST_ID', payload.playlistId);
-                // If it's a new playlist ID we don't have loaded, load it?
-                // The manager usually controls the load, so we might just sync UI.
+                this.store.commit('appData/SET_PLAYER_CONNECTED', payload.connected);
+                this.store.commit('appData/SET_PLAYER_STATUS', payload.status || 'stopped');
+                if (payload.itemId) {
+                    this.store.commit('appData/SET_PLAYING_ITEM', payload.itemId);
+                }
+                break;
+            case 'player:itemStatuses':
+                this.store.commit('appData/SET_ITEM_STATUSES', payload);
+                break;
+            case 'player:time':
+                // Calculate progress as percentage and update store
+                if (payload.duration > 0) {
+                    const progress = (payload.currentTime / payload.duration) * 100;
+                    this.store.dispatch('appData/updateProgress', progress);
+                }
+                break;
+            case 'notification:new':
+                this.store.dispatch('notifications/add', payload);
                 break;
         }
     }

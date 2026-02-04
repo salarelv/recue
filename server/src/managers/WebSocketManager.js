@@ -89,14 +89,53 @@ class WebSocketManager {
                 this.broadcastToPlaylist(playlistId, 'player:state', StateManager.getPlayerState());
                 break;
 
+            case 'player:loading':
+                if (payload.mediaId) {
+                    const playlistId = payload.playlistId || StateManager.getPlayerState().playlistId || 'default';
+                    const statuses = StateManager.updateItemStatus(playlistId, payload.mediaId, 'loading');
+                    this.broadcastToPlaylist(playlistId, 'player:itemStatuses', statuses);
+                }
+                break;
+
             case 'player:ready':
-                console.log("Player is ready");
-                this.broadcastToPlaylist(payload.playlistId || 'default', 'player:ready', payload);
+                if (payload.mediaId) {
+                    const playlistId = payload.playlistId || StateManager.getPlayerState().playlistId || 'default';
+                    const statuses = StateManager.updateItemStatus(playlistId, payload.mediaId, 'ready');
+                    this.broadcastToPlaylist(playlistId, 'player:itemStatuses', statuses);
+                }
+                break;
+
+            case 'player:error':
+                if (payload.mediaId) {
+                    const playlistId = payload.playlistId || StateManager.getPlayerState().playlistId || 'default';
+                    const statuses = StateManager.updateItemStatus(playlistId, payload.mediaId, 'error');
+                    this.broadcastToPlaylist(playlistId, 'player:itemStatuses', statuses);
+                }
+                break;
+
+            case 'player:error:detail':
+                if (payload.itemId) {
+                    const playlistId = payload.playlistId || StateManager.getPlayerState().playlistId || 'default';
+                    this.broadcastToPlaylist(playlistId, 'notification:new', {
+                        id: Date.now(),
+                        type: 'error',
+                        title: 'Playback Error',
+                        message: `Failed to play "${payload.itemName}": ${payload.error}`,
+                        timestamp: new Date().toISOString()
+                    });
+                }
                 break;
 
             case 'player:time':
+                // Update persistent state
+                const currentStatus = StateManager.getPlayerState();
+                if (payload.itemId === currentStatus.itemId) {
+                    StateManager.updatePlayerState({
+                        currentTime: payload.currentTime
+                    });
+                }
+
                 // Broadcast time updates to listeners (manager)
-                // console.log('Player time', payload);
                 this.broadcastToPlaylist(payload.playlistId || 'default', 'player:time', payload);
                 break;
 
@@ -116,11 +155,32 @@ class WebSocketManager {
             this.players.add(socket);
             socket.role = 'player';
             console.log('Registered Player');
+
+            // Mark as connected in state
+            StateManager.updatePlayerState({ connected: true });
+
+            // Check if we should resume
+            const state = StateManager.getPlayerState();
+            if (state.itemId && state.status === 'playing') {
+                console.log('Resuming player to:', state.itemId, 'at', state.currentTime);
+                this.send(socket, 'control:command', {
+                    command: 'resume',
+                    mediaId: state.itemId,
+                    startTime: state.currentTime
+                });
+            }
+
+            // Sync managers
+            this.broadcastToAllPlaylists('player:state', state);
+
         } else if (role === 'manager') {
             this.managers.add(socket);
             socket.role = 'manager';
             StateManager.setManagerConnected(true);
             console.log('Registered Manager');
+
+            // Sync new manager with current player status
+            this.send(socket, 'player:state', StateManager.getPlayerState());
         }
     }
 
@@ -129,6 +189,14 @@ class WebSocketManager {
         if (socket.role === 'player') {
             this.players.delete(socket);
             console.log('Player disconnected');
+
+            // Mark as disconnected
+            StateManager.updatePlayerState({ connected: false });
+
+            // Broadast to managers so they can grey out UI
+            const playlistId = StateManager.getPlayerState().playlistId || 'default';
+            this.broadcastToPlaylist(playlistId, 'player:state', StateManager.getPlayerState());
+
         } else if (socket.role === 'manager') {
             this.managers.delete(socket);
             if (this.managers.size === 0) {

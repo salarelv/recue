@@ -23,7 +23,7 @@
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
                             stroke="currentColor" class="w-6 h-6">
                             <path stroke-linecap="round" stroke-linejoin="round"
-                                d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+                                d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H3.75A1.5 1.5 0 0 0 2.25 6v12a1.5 1.5 0 0 0 1.5 1.5Zm10.5-11.25h.008v.008h-.008V8.25Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" />
                         </svg>
                     </button>
 
@@ -41,27 +41,18 @@
                     </button>
 
                     <div class="h-4 w-[1px] bg-white/10 mx-1 hidden lg:block"></div>
-
-                    <button class="btn btn-sm btn-circle btn-ghost hidden md:inline-flex" title="Open Player"
-                        @click="openPlayerModal = true">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
-                            stroke="currentColor" class="w-5 h-5">
-                            <path stroke-linecap="round" stroke-linejoin="round"
-                                d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 010 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.281z" />
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                        </svg>
-                    </button>
                 </div>
 
                 <div class="text-sm font-bold tracking-widest text-white uppercase truncate px-2">Recue Manager</div>
 
                 <div class="flex gap-2 items-center">
                     <!-- Mobile: Toggle Settings -->
-                    <button class="btn btn-sm btn-square btn-ghost lg:hidden" @click="showSettings = !showSettings">
+                    <button class="btn btn-sm btn-circle btn-ghost hidden md:inline-flex" title="Open Player"
+                        @click="openPlayerModal = true">
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
-                            stroke="currentColor" class="w-6 h-6">
+                            stroke="currentColor" class="w-5 h-5">
                             <path stroke-linecap="round" stroke-linejoin="round"
-                                d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-9.75 0h9.75" />
+                                d="M6 20.25h12m-7.5-3v3m3-3v3m-10.125-3h17.25c.621 0 1.125-.504 1.125-1.125V4.125c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v12c0 .621.504 1.125 1.125 1.125z" />
                         </svg>
                     </button>
 
@@ -72,6 +63,48 @@
                         <button class="join-item btn btn-sm border-0"
                             :class="appMode === 'edit' ? 'btn-primary text-white' : 'btn-ghost text-gray-400'"
                             @click="setMode('edit')">EDIT</button>
+                    </div>
+
+                    <div class="h-4 w-[1px] bg-white/10 mx-1 hidden lg:block"></div>
+
+                    <!-- Notifications Dropdown -->
+                    <div class="dropdown dropdown-end">
+                        <label tabindex="0" class="btn btn-sm btn-circle btn-ghost relative">
+                            <span v-if="notifications.length > 0"
+                                class="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.8)]"></span>
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
+                                stroke="currentColor" class="w-5 h-5">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
+                            </svg>
+                        </label>
+                        <div tabindex="0"
+                            class="dropdown-content z-50 card card-compact w-72 p-2 shadow-2xl bg-base-200 border border-white/10 mt-2">
+                            <div class="card-body">
+                                <div class="flex justify-between items-center mb-2">
+                                    <h3 class="font-bold text-xs uppercase tracking-widest text-gray-400">Notifications
+                                    </h3>
+                                    <button v-if="notifications.length > 0"
+                                        @click="store.dispatch('notifications/clearAll')"
+                                        class="btn btn-xs btn-ghost text-gray-500 hover:text-white">Clear All</button>
+                                </div>
+                                <div class="max-h-64 overflow-y-auto space-y-2">
+                                    <div v-if="notifications.length === 0"
+                                        class="py-4 text-center text-gray-500 text-xs">
+                                        No new notifications
+                                    </div>
+                                    <div v-for="n in notifications" :key="n.id"
+                                        class="p-2 rounded-lg bg-base-300 border-l-2 border-red-500 flex flex-col gap-1 relative group">
+                                        <button @click="store.dispatch('notifications/remove', n.id)"
+                                            class="absolute top-1 right-1 opacity-0 group-hover:opacity-100 btn btn-xs btn-circle btn-ghost">✕</button>
+                                        <span class="text-[10px] text-red-400 font-bold uppercase">{{ n.title }}</span>
+                                        <p class="text-xs text-gray-300 leading-tight">{{ n.message }}</p>
+                                        <span class="text-[8px] text-gray-500">{{ new
+                                            Date(n.timestamp).toLocaleTimeString() }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -88,50 +121,59 @@
                     </div>
                 </div>
 
-                <div class="flex-1 flex items-center px-4 justify-between min-w-0">
-                    <!-- Left: Mini Preview & Controls -->
-                    <div class="flex items-center gap-3 w-1/3">
+                <!-- Main Content Row -->
+                <div class="flex-1 flex items-center px-4 py-1.5 justify-between min-w-0 h-full overflow-hidden">
+                    <!-- Left: Mini Preview -->
+                    <div class="flex items-center gap-3 w-1/3 h-full min-w-0">
                         <div
-                            class="w-16 h-9 bg-black rounded overflow-hidden border border-white/10 relative flex-shrink-0 flex items-center justify-center">
+                            class="h-full aspect-video max-w-[120px] bg-black rounded overflow-hidden border border-white/10 relative flex-shrink-0 flex items-center justify-center">
                             <img v-if="playingItem && playingItem.thumbnail"
-                                :src="playingItem.thumbnail.startsWith('/') ? `http://localhost:3000${playingItem.thumbnail}` : playingItem.thumbnail"
+                                :src="playingItem.thumbnail.startsWith('/') ? `${window.location.origin}${playingItem.thumbnail}` : playingItem.thumbnail"
                                 class="w-full h-full object-cover opacity-80" />
-                            <div v-else class="w-full h-full flex items-center justify-center text-[8px] text-gray-600">
+                            <div v-else
+                                class="w-full h-full flex items-center justify-center text-[10px] text-gray-600">
                                 NO SIGNAL</div>
                         </div>
-                        <div class="min-w-0">
-                            <div class="text-xs font-bold text-white truncate">{{ playingItem ? playingItem.name :
-                                'Ready' }}</div>
-                            <div class="text-[10px] text-accent truncate">{{ playingItem ?
-                                formatDuration(playingItem.duration) : '--:--' }}</div>
+                        <div class="min-w-0 flex-1">
+                            <div class="text-xs font-bold text-white truncate">
+                                {{ !playerConnected ? 'PLAYER NOT OPEN' : (playingItem ? playingItem.name : 'Ready') }}
+                            </div>
+                            <div class="text-sm font-mono text-accent truncate">{{ playingItem ?
+                                '-' + formatDuration(Math.round((playingItem.duration / 1000) * (1 - playbackProgress /
+                                    100))) : '--:--' }}</div>
                         </div>
                     </div>
 
                     <!-- Center: Transport Controls -->
                     <div class="flex items-center justify-center gap-4 flex-1">
-                        <button class="btn btn-sm btn-circle btn-ghost" title="Previous">
+                        <button class="btn btn-sm btn-circle btn-ghost"
+                            :class="{ 'opacity-20 pointer-events-none': !playerConnected }" title="Previous"
+                            @click="store.dispatch('appData/playPrevious')">
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"
                                 class="w-5 h-5">
                                 <path
                                     d="M9.195 18.44c1.25.713 2.805-.19 2.805-1.629v-2.34l6.945 3.968c1.25.714 2.805-.188 2.805-1.628V8.688c0-1.44-1.555-2.342-2.805-1.628L12 11.03v-2.34c0-1.44-1.555-2.343-2.805-1.629l-7.108 4.062c-1.26.72-1.26 2.536 0 3.256l7.108 4.061z" />
                             </svg>
                         </button>
-                        <button class="btn btn-md btn-circle btn-primary shadow-lg shadow-primary/20 text-white"
+                        <button class="btn btn-md btn-circle shadow-lg text-white"
+                            :class="[playerConnected ? 'btn-primary shadow-primary/20' : 'bg-gray-700 opacity-50 pointer-events-none']"
                             @click="togglePlay">
-                            <svg v-if="isPlaying" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
-                                fill="currentColor" class="w-6 h-6">
+                            <svg v-if="isPlaying && playerConnected" xmlns="http://www.w3.org/2000/svg"
+                                viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6">
                                 <path fill-rule="evenodd"
                                     d="M6.75 5.25a.75.75 0 01.75-.75H9a.75.75 0 01.75.75v13.5a.75.75 0 01-.75.75H7.5a.75.75 0 01-.75-.75V5.25zm7.5 0A.75.75 0 0115 4.5h1.5a.75.75 0 01.75.75v13.5a.75.75 0 01-.75.75H15a.75.75 0 01-.75-.75V5.25z"
                                     clip-rule="evenodd" />
                             </svg>
                             <svg v-else xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"
-                                class="w-6 h-6">
+                                class="w-6 h-6 pl-0.5">
                                 <path fill-rule="evenodd"
                                     d="M4.5 5.653c0-.856.917-1.398 1.667-.986l11.54 6.348a1.125 1.125 0 010 1.971l-11.54 6.347a1.125 1.125 0 01-1.667-.985V5.653z"
                                     clip-rule="evenodd" />
                             </svg>
                         </button>
-                        <button class="btn btn-sm btn-circle btn-ghost" title="Next">
+                        <button class="btn btn-sm btn-circle btn-ghost"
+                            :class="{ 'opacity-20 pointer-events-none': !playerConnected }" title="Next"
+                            @click="store.dispatch('appData/playNext')">
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"
                                 class="w-5 h-5">
                                 <path
@@ -143,7 +185,8 @@
                     <!-- Right: Next Item -->
                     <div class="hidden md:flex flex-col items-end w-1/3 text-right">
                         <div class="text-[10px] text-gray-500 uppercase tracking-widest">Next Up</div>
-                        <div class="text-xs font-medium text-gray-300 truncate max-w-[150px]">Sponsor Log</div>
+                        <div class="text-xs font-medium text-gray-300 truncate max-w-[150px]">{{ nextUpItem ?
+                            nextUpItem.name : 'End of List' }}</div>
                     </div>
                 </div>
             </div>
@@ -193,8 +236,17 @@ const selectedItemId = computed(() => store.state.appData.selectedItemId);
 const playingItem = computed(() => store.getters['appData/playingItem']);
 const playbackProgress = computed(() => store.state.appData.playbackProgress);
 const currentPlaylistId = computed(() => store.state.playlists.currentPlaylistId);
+const playerConnected = computed(() => store.state.appData.playerConnected);
+const notifications = computed(() => store.state.notifications.notifications);
 
-const isPlaying = ref(false);
+const nextUpItem = computed(() => {
+    const items = store.getters['appData/allPlaylistItems'];
+    const currentIdx = items.findIndex(i => i.id === store.state.appData.playingItemId);
+    if (currentIdx === -1) return null;
+    return items[currentIdx + 1] || null;
+});
+
+const isPlaying = computed(() => store.getters['appData/isPlaying']);
 
 watch(selectedItemId, (newId) => {
     if (newId) {
@@ -207,13 +259,17 @@ const setMode = (mode) => {
 };
 
 const togglePlay = () => {
-    isPlaying.value = !isPlaying.value;
-    // Mock play logic
-    if (isPlaying.value && !playingItem.value) {
-        // If nothing playing, play first item
-        const items = store.getters['appData/allPlaylistItems'];
-        if (items.length > 0) {
-            store.dispatch('appData/playItem', items[0].id);
+    if (isPlaying.value) {
+        store.dispatch('appData/sendPlayerCommand', { command: 'stop' });
+    } else {
+        if (playingItem.value) {
+            store.dispatch('appData/playItem', playingItem.value.id);
+        } else {
+            // If nothing playing, play first item
+            const items = store.getters['appData/allPlaylistItems'];
+            if (items.length > 0) {
+                store.dispatch('appData/playItem', items[0].id);
+            }
         }
     }
 };
