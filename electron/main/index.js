@@ -4,6 +4,7 @@ const ServerProcess = require('../services/serverProcess');
 const ManagerWindow = require('./windows/manager');
 const PlayerWindow = require('./windows/player');
 const IpcHandlers = require('./ipc');
+const { createMenu } = require('./menu');
 
 // Initialize services
 const serverProcess = new ServerProcess();
@@ -13,6 +14,7 @@ let ipcHandlers = null;
 
 
 async function initialize() {
+    createMenu();
     try {
         // Start the server first
         console.log('[Main] Starting server...');
