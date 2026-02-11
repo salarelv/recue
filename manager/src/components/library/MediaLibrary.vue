@@ -21,17 +21,8 @@
       <div v-for="item in items" :key="item.id"
         class="group relative aspect-video bg-base-300 rounded-lg overflow-hidden border border-white/5 hover:border-accent transition-all cursor-pointer"
         @click="addToPlaylist(item)">
-        <div class="w-full h-full bg-black/20 flex items-center justify-center">
-          <img v-if="item.thumbnail"
-            :src="item.thumbnail.startsWith('/') ? `http://localhost:3000${item.thumbnail}` : item.thumbnail"
-            class="w-full h-full object-cover opacity-70 group-hover:opacity-100 transition-opacity" />
-          <div v-else class="flex flex-col items-center gap-1 text-gray-500">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
-              stroke="currentColor" class="size-6">
-              <path stroke-linecap="round" stroke-linejoin="round"
-                d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H3.75A1.5 1.5 0 0 0 2.25 6v12a1.5 1.5 0 0 0 1.5 1.5Zm10.5-11.25h.008v.008h-.008V8.25Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" />
-            </svg>
-          </div>
+        <div class="w-full h-full bg-black/20">
+          <MediaThumbnail :item="item" container-class="w-full h-full" img-class="opacity-70 group-hover:opacity-100" />
         </div>
         <div class="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent p-2 flex flex-col justify-end">
           <span class="text-xs font-semibold text-white truncate">{{ item.name }}</span>
@@ -51,6 +42,15 @@
           <button class="btn btn-xs btn-circle btn-primary text-white">
             +
           </button>
+        </div>
+        <!-- Conversion Overlay -->
+        <div v-if="getConversionStatus(item.id)"
+          class="absolute inset-0 bg-black/70 flex flex-col items-center justify-center z-20">
+          <span class="loading loading-spinner loading-md text-accent"></span>
+          <span class="text-xs text-white mt-2">Converting...</span>
+          <span v-if="getConversionStatus(item.id).progress" class="text-xs text-accent mt-1">
+            {{ getConversionStatus(item.id).progress }}%
+          </span>
         </div>
       </div>
     </div>
@@ -75,11 +75,16 @@
 import { computed, ref } from 'vue';
 import { useStore } from 'vuex';
 import CreateMediaModal from '../modals/CreateMediaModal.vue';
+import MediaThumbnail from '../common/MediaThumbnail.vue';
 
 const store = useStore();
 const items = computed(() => store.getters['appData/allLibraryItems']);
 const showCreateModal = ref(false);
 const isDragging = ref(false);
+
+const getConversionStatus = (mediaId) => {
+  return store.getters['appData/conversionStatus'](mediaId);
+};
 
 const handleDrop = async (e) => {
   isDragging.value = false;

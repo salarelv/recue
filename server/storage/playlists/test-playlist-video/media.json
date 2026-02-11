@@ -1,0 +1,10 @@
+[
+  {
+    "id": "file-1770651710328",
+    "name": "Test Video",
+    "type": "video",
+    "filename": "test_video.mp4",
+    "duration": 5000,
+    "thumbnail": "test_video.jpg"
+  }
+]

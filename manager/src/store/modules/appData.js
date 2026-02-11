@@ -22,7 +22,8 @@ export default {
         playbackProgress: 0, // 0 to 100
         availableEffects: ['cut', 'fade', 'crossfade'],
         itemStatuses: {}, // { mediaId: 'loading' | 'ready' | 'error' }
-        playerConnected: false
+        playerConnected: false,
+        conversionStatuses: {} // { mediaId: { status, progress, error } }
     }),
     getters: {
         allLibraryItems: state => state.libraryItems,
@@ -30,7 +31,8 @@ export default {
         selectedItem: state => state.playlistItems.find(item => item.id === state.selectedItemId),
         playingItem: state => state.playlistItems.find(item => item.id === state.playingItemId),
         isPlaying: state => state.playbackStatus === 'playing',
-        totalDuration: state => state.playlistItems.reduce((acc, item) => acc + item.duration, 0)
+        totalDuration: state => state.playlistItems.reduce((acc, item) => acc + item.duration, 0),
+        conversionStatus: state => mediaId => state.conversionStatuses[mediaId] || null
     },
     actions: {
         async initialize({ dispatch, rootState }) {
@@ -59,11 +61,29 @@ export default {
         },
         addToPlaylist({ commit, dispatch, rootState }, item) {
             const defaults = rootState.playlists.currentPlaylistSettings;
+
+            // For videos and YouTube, prefer the content's own duration.
+            // For other types, use the playlist's default duration if set.
+            let duration = item.duration || defaults.defaultDuration || 10000;
+
+            if (item.type === 'video' || item.type === 'youtube') {
+                duration = item.duration || defaults.defaultDuration || 60000;
+            } else {
+                duration = defaults.defaultDuration || item.duration || 10000;
+            }
+
+            // Safety check: if duration is suspiciously low (less than 1s), 
+            // it might be a seconds-vs-ms unit error. Scale it up if so.
+            if (duration > 0 && duration < 1000) {
+                console.warn('Suspiciously low duration detected, scaling to ms:', duration);
+                duration *= 1000;
+            }
+
             commit('ADD_TO_PLAYLIST', {
                 ...item,
                 id: `pl-${Date.now()}`,
                 mediaId: item.id, // Store the original library ID
-                duration: defaults.defaultDuration || item.duration,
+                duration: duration,
                 transition: defaults.defaultEffect || 'cut',
                 volume: 1.0
             });
@@ -73,6 +93,10 @@ export default {
             commit('SET_SELECTED', id);
         },
         updateItem({ commit, dispatch }, { id, updates }) {
+            if (updates.duration && updates.duration > 0 && updates.duration < 1000) {
+                console.warn('Manual duration edit too low, scaling to ms:', updates.duration);
+                updates.duration *= 1000;
+            }
             commit('UPDATE_ITEM', { id, updates });
             dispatch('savePlaylist');
         },
@@ -139,9 +163,9 @@ export default {
                     metadata.thumbnail = await generateImageThumbnail(file);
                 } else if (file.type.startsWith('video/')) {
                     metadata.type = 'video';
-                    const videoMeta = await generateVideoThumbnail(file);
-                    metadata.thumbnail = videoMeta.thumbnail;
-                    metadata.duration = videoMeta.duration;
+                    // Backend handles thumbnail and duration during conversion
+                    metadata.duration = 0;
+                    metadata.thumbnail = '';
                 }
             } catch (e) {
                 console.warn("Failed to generate thumbnail/meta", e);
@@ -190,6 +214,11 @@ export default {
         },
         setLibrary({ commit }, items) {
             commit('SET_LIBRARY', items);
+        },
+        async refreshDisplays({ dispatch }) {
+            // This is a placeholder for components to react to or to trigger a fetch
+            // We'll use a custom event on window for simplicity in this architecture
+            window.dispatchEvent(new CustomEvent('electron:display-changed'));
         }
     },
     mutations: {
@@ -244,6 +273,16 @@ export default {
         },
         SET_PLAYER_STATUS(state, status) {
             state.playbackStatus = status;
+        },
+        SET_CONVERSION_STATUS(state, { mediaId, status, progress, error }) {
+            state.conversionStatuses = {
+                ...state.conversionStatuses,
+                [mediaId]: { status, progress, error }
+            };
+        },
+        REMOVE_CONVERSION_STATUS(state, mediaId) {
+            const { [mediaId]: _, ...rest } = state.conversionStatuses;
+            state.conversionStatuses = rest;
         }
     }
 }

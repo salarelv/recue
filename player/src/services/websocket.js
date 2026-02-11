@@ -19,7 +19,8 @@ class WebSocketService {
         }
 
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const url = `${protocol}//${window.location.hostname}:3000/ws`;
+        const host = import.meta.env.DEV ? 'localhost:3000' : window.location.host;
+        const url = `${protocol}//${host}/ws`;
 
         console.log('Connecting to WebSocket...', url);
         this.socket = new WebSocket(url);

@@ -63,18 +63,10 @@
 
           <!-- Thumbnail -->
           <div v-if="getItemStatus(item, index) !== 'played'"
-            class="w-16 h-10 rounded overflow-hidden bg-black mr-3 relative md:w-20 md:h-12 flex-shrink-0 pointer-events-none transition-all duration-300 flex items-center justify-center">
-            <img v-if="item.thumbnail"
-              :src="item.thumbnail.startsWith('/') ? `http://localhost:3000${item.thumbnail}` : item.thumbnail"
-              class="w-full h-full object-cover" />
-            <div v-else class="text-gray-600">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
-                stroke="currentColor" class="size-4">
-                <path stroke-linecap="round" stroke-linejoin="round"
-                  d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H3.75A1.5 1.5 0 0 0 2.25 6v12a1.5 1.5 0 0 0 1.5 1.5Zm10.5-11.25h.008v.008h-.008V8.25Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" />
-              </svg>
+            class="w-16 h-10 rounded overflow-hidden mr-3 md:w-20 md:h-12 flex-shrink-0 pointer-events-none transition-all duration-300 relative">
+            <MediaThumbnail :item="item" container-class="w-full h-full" />
+            <div v-if="item.loop" class="absolute bottom-0 right-0 bg-secondary text-white text-[8px] px-1 z-10">LOOP
             </div>
-            <div v-if="item.loop" class="absolute bottom-0 right-0 bg-secondary text-white text-[8px] px-1">LOOP</div>
           </div>
 
           <div class="flex-1 min-w-0">
@@ -153,6 +145,7 @@ import { computed, ref } from 'vue';
 import { useStore } from 'vuex';
 import draggable from 'vuedraggable';
 import PlaylistSettingsModal from '../modals/PlaylistSettingsModal.vue';
+import MediaThumbnail from '../common/MediaThumbnail.vue';
 
 const store = useStore();
 const showSettingsModal = ref(false);

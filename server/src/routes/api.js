@@ -162,6 +162,14 @@ async function routes(fastify, options) {
             reply.code(500).send({ error: 'Failed to delete playlist' });
         }
     });
+
+    // Display Events (from Electron)
+    fastify.post('/displays/event', async (request, reply) => {
+        if (fastify.wsManager) {
+            fastify.wsManager.broadcastToAllPlaylists('electron:display-changed');
+        }
+        return { message: 'Display event broadcasted' };
+    });
 }
 
 module.exports = routes;

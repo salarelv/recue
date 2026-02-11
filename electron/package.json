@@ -1,0 +1,11 @@
+{
+    "name": "recue-electron",
+    "version": "1.0.0",
+    "main": "main/index.js",
+    "description": "Electron wrapper for Recue media player",
+    "author": "",
+    "license": "ISC",
+    "dependencies": {
+        "electron-store": "^10.0.0"
+    }
+}

@@ -35,28 +35,67 @@
                             <path stroke-linecap="round" stroke-linejoin="round"
                                 d="M3.75 12h16.5m-16.5 3.75h16.5M3.75 19.5h16.5M5.625 4.5h12.75a1.875 1.875 0 010 3.75H5.625a1.875 1.875 0 010-3.75z" />
                         </svg>
-                        <span class="text-xs font-bold uppercase tracking-widest hidden sm:inline">Playlist</span>
-                        <div class="badge badge-sm badge-outline border-white/20 text-[10px] opacity-60">{{
-                            currentPlaylistId || '...' }}</div>
+                        <span class="text-xs font-bold uppercase tracking-widest hidden lg:inline">{{
+                            currentPlaylistName || 'Select Playlist' }}</span>
                     </button>
 
                     <div class="h-4 w-[1px] bg-white/10 mx-1 hidden lg:block"></div>
                 </div>
 
-                <div class="text-sm font-bold tracking-widest text-white uppercase truncate px-2">Recue Manager</div>
+                <div class="text-sm font-bold tracking-widest text-white uppercase truncate px-2">Recue</div>
 
                 <div class="flex gap-2 items-center">
-                    <!-- Mobile: Toggle Settings -->
-                    <button class="btn btn-sm btn-circle btn-ghost hidden md:inline-flex" title="Open Player"
-                        @click="openPlayerModal = true">
+                    <!-- Display Management Dropdown (Electron) or Button (Browser) -->
+                    <div v-if="isElectron" class="dropdown dropdown-end">
+                        <button tabindex="0" class="btn btn-sm btn-circle btn-ghost" title="Manage Displays"
+                            @click="fetchDisplays">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
+                                stroke="currentColor" class="w-5 h-5">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M6 20.25h12m-7.5-3v3m3-3v3m-10.125-3h17.25c.621 0 1.125-.504 1.125-1.125V4.125c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v12c0 .621.504 1.125 1.125 1.125z" />
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M9 17.25v1.5M15 17.25v1.5M7.5 18.75h9" />
+                            </svg>
+                        </button>
+                        <ul tabindex="0"
+                            class="dropdown-content z-[60] menu p-2 shadow-2xl bg-base-200 border border-white/10 rounded-box w-64 mt-2">
+                            <li class="menu-title text-gray-500 text-[10px] uppercase tracking-widest px-4 py-2">Select
+                                Display</li>
+                            <li v-if="loadingDisplays">
+                                <a class="text-xs italic text-gray-500">Loading displays...</a>
+                            </li>
+                            <li v-else v-for="display in displays" :key="display.id">
+                                <button @click="openPlayer(display.id)" class="flex justify-between items-center group">
+                                    <div class="flex flex-col items-start">
+                                        <span class="text-xs font-bold"
+                                            :class="display.active ? 'text-primary' : 'text-gray-300'">
+                                            {{ display.primary ? 'Primary Display' : 'External Display' }}
+                                        </span>
+                                        <span class="text-[10px] text-gray-500">{{ display.bounds.width }}x{{
+                                            display.bounds.height }} {{ display.label }}</span>
+                                    </div>
+                                    <span v-if="display.active"
+                                        class="badge badge-primary badge-outline badge-xs opacity-70">ACTIVE</span>
+                                    <svg v-else xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                                        stroke-width="1.5" stroke="currentColor"
+                                        class="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                            d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
+                                    </svg>
+                                </button>
+                            </li>
+                        </ul>
+                    </div>
+                    <button v-else class="btn btn-sm btn-circle btn-ghost" title="Open Player Window"
+                        @click="openPlayerBrowser">
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
-                            stroke="currentColor" class="w-5 h-5">
+                            stroke="currentColor" class="w-5 h-5 text-gray-400 hover:text-white">
                             <path stroke-linecap="round" stroke-linejoin="round"
-                                d="M6 20.25h12m-7.5-3v3m3-3v3m-10.125-3h17.25c.621 0 1.125-.504 1.125-1.125V4.125c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v12c0 .621.504 1.125 1.125 1.125z" />
+                                d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
                         </svg>
                     </button>
 
-                    <div class="join border border-white/10 rounded-lg overflow-hidden hidden md:flex">
+                    <div class="join border border-white/10 rounded-lg overflow-hidden md:flex">
                         <button class="join-item btn btn-sm border-0"
                             :class="appMode === 'play' ? 'btn-primary text-white' : 'btn-ghost text-gray-400'"
                             @click="setMode('play')">PLAY</button>
@@ -122,17 +161,13 @@
                 </div>
 
                 <!-- Main Content Row -->
-                <div class="flex-1 flex items-center px-4 py-1.5 justify-between min-w-0 h-full overflow-hidden">
+                <div class="flex-1 items-center px-4 py-1.5 justify-between min-w-0 h-full overflow-hidden flex">
                     <!-- Left: Mini Preview -->
-                    <div class="flex items-center gap-3 w-1/3 h-full min-w-0">
+                    <div class="items-center gap-3 w-1/3 h-full min-w-0 hidden md:flex">
                         <div
-                            class="h-full aspect-video max-w-[120px] bg-black rounded overflow-hidden border border-white/10 relative flex-shrink-0 flex items-center justify-center">
-                            <img v-if="playingItem && playingItem.thumbnail"
-                                :src="playingItem.thumbnail.startsWith('/') ? `${window.location.origin}${playingItem.thumbnail}` : playingItem.thumbnail"
-                                class="w-full h-full object-cover opacity-80" />
-                            <div v-else
-                                class="w-full h-full flex items-center justify-center text-[10px] text-gray-600">
-                                NO SIGNAL</div>
+                            class="h-full aspect-video max-w-[120px] bg-black rounded overflow-hidden border border-white/10 relative flex-shrink-0">
+                            <MediaThumbnail :item="playingItem" container-class="w-full h-full"
+                                img-class="opacity-80" />
                         </div>
                         <div class="min-w-0 flex-1">
                             <div class="text-xs font-bold text-white truncate">
@@ -207,7 +242,6 @@
         </div>
 
         <GeneralSettingsModal :open="openSettingsModal" @close="openSettingsModal = false" />
-        <PlayerWindowModal :open="openPlayerModal" @close="openPlayerModal = false" />
         <PlaylistSelectorModal :open="openPlaylistModal" @close="openPlaylistModal = false" />
 
     </div>
@@ -219,8 +253,8 @@ import PlaylistEditor from '../playlist/PlaylistEditor.vue';
 import ItemSettings from '../settings/ItemSettings.vue';
 import PlayerPreview from '../player/PlayerPreview.vue';
 import GeneralSettingsModal from '../modals/GeneralSettingsModal.vue';
-import PlayerWindowModal from '../modals/PlayerWindowModal.vue';
 import PlaylistSelectorModal from '../modals/PlaylistSelectorModal.vue';
+import MediaThumbnail from '../common/MediaThumbnail.vue';
 import { onMounted, ref, computed, watch } from 'vue';
 import { useStore } from 'vuex';
 
@@ -228,14 +262,43 @@ const store = useStore();
 const showLibrary = ref(false);
 const showSettings = ref(false);
 const openSettingsModal = ref(false);
-const openPlayerModal = ref(false);
 const openPlaylistModal = ref(false);
+
+const isElectron = computed(() => !!window.electronAPI);
+const displays = ref([]);
+const loadingDisplays = ref(false);
+
+const fetchDisplays = async () => {
+    if (!isElectron.value) return;
+    loadingDisplays.value = true;
+    try {
+        displays.value = await window.electronAPI.getDisplays();
+    } catch (err) {
+        console.error('Failed to fetch displays:', err);
+    } finally {
+        loadingDisplays.value = false;
+    }
+};
+
+const openPlayer = async (displayId) => {
+    const playlistId = store.state.playlists.currentPlaylistId || 'default';
+    await window.electronAPI.openPlayer(displayId, playlistId);
+    await fetchDisplays(); // Refresh statuses
+};
+
+const openPlayerBrowser = () => {
+    const playlistId = store.state.playlists.currentPlaylistId || 'default';
+    const screenId = store.state.appData.playerSettings.screenId || 'screen-1';
+    const url = `/player/index.html?playlistId=${playlistId}&screenId=${screenId}`;
+    window.open(url, 'RecuePlayer', 'width=1280,height=720');
+};
 
 const appMode = computed(() => store.state.appData.appMode);
 const selectedItemId = computed(() => store.state.appData.selectedItemId);
 const playingItem = computed(() => store.getters['appData/playingItem']);
 const playbackProgress = computed(() => store.state.appData.playbackProgress);
 const currentPlaylistId = computed(() => store.state.playlists.currentPlaylistId);
+const currentPlaylistName = computed(() => store.state.playlists.currentPlaylistName);
 const playerConnected = computed(() => store.state.appData.playerConnected);
 const notifications = computed(() => store.state.notifications.notifications);
 
@@ -310,6 +373,11 @@ onMounted(async () => {
     }
 
     store.dispatch('appData/initialize');
+
+    if (isElectron.value) {
+        fetchDisplays();
+        window.addEventListener('electron:display-changed', fetchDisplays);
+    }
 });
 </script>
 

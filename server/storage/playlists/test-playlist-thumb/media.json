@@ -1,0 +1,18 @@
+[
+  {
+    "id": "file-1770652331843",
+    "name": "Test Image",
+    "type": "image",
+    "filename": "sample_image.jpg",
+    "duration": 10000,
+    "thumbnail": "sample_image_thumb.jpg"
+  },
+  {
+    "id": "file-1770652331872",
+    "name": "Test Video",
+    "type": "video",
+    "filename": "sample_video.mp4",
+    "duration": 3000,
+    "thumbnail": "sample_video.jpg"
+  }
+]

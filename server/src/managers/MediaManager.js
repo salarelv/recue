@@ -1,5 +1,6 @@
 const fs = require('fs').promises;
 const path = require('path');
+const ConversionService = require('../services/ConversionService');
 
 const DEFAULT_DURATION = 10000;
 
@@ -36,22 +37,22 @@ class MediaManager {
             try {
                 const content = await fs.readFile(configPath, 'utf-8');
                 let media = JSON.parse(content);
-                // Ensure URLs are correct
-                media = media.map(m => ({
-                    ...m,
-                    path: m.type === 'image' || m.type === 'video' ? `/media/${playlistId}/media/${m.filename}` : undefined
-                }));
-                return media;
+                return media.map(m => this._decorateItem(m, playlistId));
             } catch (e) {
-                // If config doesn't exist, try to sync/create it?
-                // Or just return empty. 
-                // Let's return what sync finds if missing.
                 return await this.syncMedia(playlistId);
             }
         } catch (error) {
             console.error('Error listing media:', error);
             return [];
         }
+    }
+
+    _decorateItem(item, playlistId) {
+        return {
+            ...item,
+            path: (item.type === 'image' || item.type === 'video') && item.filename ? `/media/${playlistId}/media/${item.filename}` : item.path,
+            thumbnailPath: item.thumbnail && !item.thumbnail.startsWith('data:') ? `/media/${playlistId}/media/${item.thumbnail}` : item.thumbnailPath
+        };
     }
 
     async syncMedia(playlistId) {
@@ -91,6 +92,20 @@ class MediaManager {
                 const ext = path.extname(file).toLowerCase();
                 if (!validExtensions.includes(ext)) continue;
 
+                // Skip thumbnail files (ending in _thumb.jpg or being .jpg but having a parent) -> filtering by naming convention is hard properly
+                // But we generate _thumb.jpg.
+                if (file.endsWith('_thumb.jpg')) continue;
+                // Also ignore generated thumbnails from video conversion (same name as video but .jpg) if video exists?
+                // Video conversion makes video.jpg.
+                // If video.mp4 exists, ignore video.jpg?
+                // Sync logic needs to be smart.
+                // For now, simple check: if name matches a video but ext is jpg, it might be a thumbnail.
+                const basename = path.basename(file, ext);
+                if (file.endsWith('_thumb.jpg')) {
+                    continue; // Skip standardized thumbnail
+                }
+
+
                 const exists = currentMedia.find(m => m.filename === file);
                 if (!exists) {
                     let type = 'unknown';
@@ -112,10 +127,8 @@ class MediaManager {
             await fs.writeFile(configPath, JSON.stringify(currentMedia, null, 2));
 
             // Return decorated media
-            return currentMedia.map(m => ({
-                ...m,
-                path: m.type === 'image' || m.type === 'video' ? `/media/${playlistId}/media/${m.filename}` : undefined
-            }));
+            // Return decorated media
+            return currentMedia.map(m => this._decorateItem(m, playlistId));
 
         } catch (error) {
             console.error(`Error syncing media for ${playlistId}:`, error);
@@ -132,29 +145,55 @@ class MediaManager {
             const filename = file.filename;
             const savePath = path.join(this.getMediaPath(playlistId), filename);
             const fsDirect = require('fs');
+            const { pipeline } = require('stream/promises');
 
-            await new Promise((resolve, reject) => {
-                const writeStream = fsDirect.createWriteStream(savePath);
-                file.file.pipe(writeStream);
-                writeStream.on('finish', resolve);
-                writeStream.on('error', reject);
-            });
+            const writeStream = fsDirect.createWriteStream(savePath);
+            await pipeline(file.file, writeStream);
+
+            if (file.file.truncated) {
+                // Delete the partial file
+                try { fsDirect.unlinkSync(savePath); } catch (e) { }
+                throw new Error('File size limit reached');
+            }
 
             // Update media.json using raw config to avoid decoration mismatch
             const rawList = await this.readRawConfig(playlistId);
             const existingIdx = rawList.findIndex(m => m.filename === filename);
+
+            // Backend handles video processing, so ignore frontend duration/thumbnail for videos
+            // But we must preserve name/type if provided
+            const isVideo = metadata.type === 'video' || filename.endsWith('.mp4'); // Simple check
+            const isImage = metadata.type === 'image' || ['.jpg', '.jpeg', '.png'].includes(path.extname(filename).toLowerCase());
+
+            let thumbnailFilename = '';
+
+            // Generate thumbnail for images
+            if (isImage) {
+                try {
+                    const ext = path.extname(filename);
+                    thumbnailFilename = filename.replace(ext, '_thumb.jpg');
+                    const thumbnailPath = path.join(this.getMediaPath(playlistId), thumbnailFilename);
+                    await ConversionService.generateImageThumbnail(savePath, thumbnailPath);
+                    console.log(`[MediaManager] Generated image thumbnail: ${thumbnailFilename}`);
+                } catch (e) {
+                    console.error(`[MediaManager] Failed to generate image thumbnail: ${e.message}`);
+                    thumbnailFilename = '';
+                }
+            }
 
             const newItem = {
                 id: metadata.id || `file-${Date.now()}`,
                 name: metadata.name || filename,
                 type: metadata.type || 'unknown',
                 filename: filename,
-                duration: metadata.duration || DEFAULT_DURATION,
-                thumbnail: metadata.thumbnail || ''
+                // Use frontend duration only if NOT video (or we trust it for images)
+                duration: isVideo ? DEFAULT_DURATION : (metadata.duration || DEFAULT_DURATION),
+                thumbnail: isVideo ? '' : (thumbnailFilename || metadata.thumbnail || '')
             };
 
             if (existingIdx >= 0) {
                 console.log(`[MediaManager] Updating existing entry at index ${existingIdx}`);
+                // Merge, but prefer new metadata if provided (except for video fields we want to recalc)
                 rawList[existingIdx] = { ...rawList[existingIdx], ...newItem };
             } else {
                 console.log(`[MediaManager] Adding new entry`);
@@ -163,9 +202,31 @@ class MediaManager {
 
             await this.saveRawConfig(playlistId, rawList);
             console.log(`[MediaManager] Saved file and updated config successfully`);
-            return true;
+            return this._decorateItem(newItem, playlistId); // Return the item for conversion tracking
         } catch (error) {
             console.error('[MediaManager] Error saving file:', error);
+            return null;
+        }
+    }
+
+    getFilePath(playlistId, filename) {
+        return path.join(this.getMediaPath(playlistId), filename);
+    }
+
+    async updateMediaMetadata(playlistId, mediaId, updates) {
+        try {
+            const rawList = await this.readRawConfig(playlistId);
+            const item = rawList.find(m => m.id === mediaId);
+            if (item) {
+                Object.assign(item, updates);
+                await this.saveRawConfig(playlistId, rawList);
+                console.log(`[MediaManager] Updated metadata for ${mediaId}:`, Object.keys(updates));
+                // Also update the cached/decorated list if needed, but listMedia re-reads it.
+                return true;
+            }
+            return false;
+        } catch (error) {
+            console.error(`Error updating media metadata for ${mediaId}:`, error);
             return false;
         }
     }
@@ -214,6 +275,9 @@ class MediaManager {
                 const filePath = path.join(this.getMediaPath(playlistId), item.filename);
                 try {
                     await fs.unlink(filePath);
+                    const thumbPath = filePath.replace(path.extname(filePath), '_thumb.jpg');
+                    try { await fs.unlink(thumbPath); } catch (e) { }
+
                     console.log(`[MediaManager] Deleted file: ${filePath}`);
                 } catch (err) {
                     console.error(`[MediaManager] Error deleting file ${filePath}:`, err);

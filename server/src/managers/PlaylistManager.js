@@ -1,5 +1,6 @@
 const fs = require('fs').promises;
 const path = require('path');
+const StateManager = require('./StateManager');
 
 class PlaylistManager {
     constructor(storagePath) {
@@ -63,7 +64,8 @@ class PlaylistManager {
                     try {
                         await fs.access(playlistPath); // Check if playlist.json exists
                         const content = await fs.readFile(playlistPath, 'utf-8');
-                        playlists.push(JSON.parse(content));
+                        const playlist = JSON.parse(content);
+                        playlists.push(this._decoratePlaylist(playlist));
                     } catch (e) {
                         // console.warn(`Skipping invalid playlist directory ${id}:`, e.message);
                     }
@@ -80,11 +82,23 @@ class PlaylistManager {
         try {
             const filePath = path.join(this.storagePath, id, 'playlist.json');
             const content = await fs.readFile(filePath, 'utf-8');
-            return JSON.parse(content);
+            const playlist = JSON.parse(content);
+            return this._decoratePlaylist(playlist);
         } catch (error) {
             console.error(`Error getting playlist ${id}:`, error);
             return null;
         }
+    }
+
+    _decoratePlaylist(playlist) {
+        if (!playlist || !playlist.items) return playlist;
+        const playlistId = playlist.id;
+        playlist.items = playlist.items.map(m => ({
+            ...m,
+            path: (m.type === 'image' || m.type === 'video') && m.filename ? `/media/${playlistId}/media/${m.filename}` : m.path,
+            thumbnailPath: m.thumbnail && !m.thumbnail.startsWith('data:') ? `/media/${playlistId}/media/${m.thumbnail}` : m.thumbnailPath
+        }));
+        return playlist;
     }
 
     async savePlaylist(id, data) {
@@ -114,6 +128,34 @@ class PlaylistManager {
             return true;
         } catch (error) {
             console.error(`Error deleting playlist ${id}:`, error);
+            return false;
+        }
+    }
+    async updateMediaItem(playlistId, mediaId, updates) {
+        try {
+            const playlist = await this.getPlaylist(playlistId);
+            if (!playlist || !playlist.items) return false;
+
+            let modified = false;
+            playlist.items = playlist.items.map(item => {
+                if (item.mediaId === mediaId) {
+                    modified = true;
+                    // Update only specific fields (filename, type, duration if needed)
+                    // Be careful not to overwrite playlist-specific overrides (like duration loop)
+                    // But if filename changes, we MUST update it.
+                    // Also if we have a path property, update it.
+                    return { ...item, ...updates };
+                }
+                return item;
+            });
+
+            if (modified) {
+                await this.savePlaylist(playlistId, playlist);
+                return true;
+            }
+            return false;
+        } catch (error) {
+            console.error(`Error updating media item ${mediaId} in playlist ${playlistId}:`, error);
             return false;
         }
     }

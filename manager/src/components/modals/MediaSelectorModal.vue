@@ -16,8 +16,7 @@
         <div v-for="item in items" :key="item.id"
           class="group relative aspect-video bg-base-300 rounded-lg overflow-hidden border border-white/5 hover:border-accent hover:ring-2 hover:ring-accent transition-all cursor-pointer"
           @click="select(item)">
-          <img :src="item.thumbnail"
-            class="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" />
+          <MediaThumbnail :item="item" container-class="w-full h-full" img-class="opacity-80 group-hover:opacity-100" />
 
           <div class="absolute inset-0 bg-gradient-to-t from-black/90 to-transparent p-2 flex flex-col justify-end">
             <span class="text-xs font-semibold text-white truncate">{{ item.name }}</span>
@@ -44,6 +43,7 @@
 <script setup>
 import { computed } from 'vue';
 import { useStore } from 'vuex';
+import MediaThumbnail from '../common/MediaThumbnail.vue';
 
 const props = defineProps({
   open: Boolean

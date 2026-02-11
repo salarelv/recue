@@ -1,13 +1,15 @@
 <template>
   <div class="player-wrapper">
-    <MediaPlayer :item="playingItem" :volume="muted ? 0 : 1" :startTime="playingItemStartTime" @ended="handleMediaEnded"
-      @timeupdate="handleTimeUpdate" @ready="handleMediaReady" @error="handleMediaError" />
+    <MediaPlayer :item="playingItem || defaultMedia || null" :volume="muted ? 0 : 1" :startTime="playingItemStartTime"
+      :serverUrl="SERVER_URL" @ended="handleMediaEnded" @timeupdate="handleTimeUpdate" @ready="handleMediaReady"
+      @error="handleMediaError" />
 
     <!-- Preloading Layer (Hidden) -->
     <div class="preloader">
       <!-- Preload regular items -->
       <template v-for="item in playlistItems" :key="'pre-' + item.id">
-        <img v-if="item.type === 'image'" :src="resolveUrl(item.url || item.path || item.thumbnail)"
+        <img v-if="item.type === 'image'"
+          :src="resolveUrl(item.url || item.path || item.thumbnailPath || item.thumbnail)"
           @load="reportItemStatus(item.id, 'ready')" @error="reportItemStatus(item.id, 'error')" />
         <video v-else-if="item.type === 'video'" :src="resolveUrl(item.url || item.path)" preload="auto" muted
           @canplaythrough="reportItemStatus(item.id, 'ready')" @error="reportItemStatus(item.id, 'error')"></video>
@@ -16,7 +18,7 @@
       <!-- Preload default media -->
       <template v-if="defaultMedia">
         <img v-if="defaultMedia.type === 'image'"
-          :src="resolveUrl(defaultMedia.url || defaultMedia.path || defaultMedia.thumbnail)" />
+          :src="resolveUrl(defaultMedia.url || defaultMedia.path || defaultMedia.thumbnailPath || defaultMedia.thumbnail)" />
         <video v-else-if="defaultMedia.type === 'video'" :src="resolveUrl(defaultMedia.url || defaultMedia.path)"
           preload="auto" muted></video>
       </template>
@@ -57,6 +59,7 @@ const displayItem = computed(() => {
 });
 
 const playingItem = displayItem; // Keep alias for compatibility if needed, though we should update template 
+let currentItemStartTime = 0;
 
 // Playback Logic
 const playbackTimer = ref(null);
@@ -65,10 +68,50 @@ const progressInterval = ref(null);
 // Status Tracking
 const itemStatuses = ref({}); // { id: 'loading' | 'ready' | 'error' }
 
+const SERVER_URL = import.meta.env.DEV ? 'http://localhost:3000' : window.location.origin;
+
+const getPlaylist = async () => {
+  try {
+    const response = await fetch(`${SERVER_URL}/api/playlists/${playlistId.value}`);
+    if (response.ok) {
+      const playlist = await response.json();
+      console.log('Playlist loaded:', playlist);
+      updatePlaylistState(playlist.items || [], playlist.settings?.defaultMedia || null);
+    }
+  } catch (error) {
+    console.error('Failed to fetch playlist:', error);
+  }
+};
+
+const updatePlaylistState = (items, defaultMediaItem = undefined) => {
+  console.log('Updating playlist state:', items.length, 'items');
+  playlistItems.value = items;
+  if (defaultMediaItem !== undefined) {
+    defaultMedia.value = defaultMediaItem;
+  }
+
+  // Initialize statuses as loading for new items
+  items.forEach(item => {
+    if (!itemStatuses.value[item.id]) {
+      reportItemStatus(item.id, 'loading');
+    }
+  });
+
+  // Now that we have items, handle any command that came in early
+  if (pendingCommand.value) {
+    const cmd = pendingCommand.value;
+    if (!cmd.mediaId || items.some(i => i.id === cmd.mediaId)) {
+      console.log('Handling pending command:', cmd);
+      pendingCommand.value = null; // Clear before handling
+      handleCommand(cmd);
+    }
+  }
+};
+
 const resolveUrl = (url) => {
   if (!url) return '';
   if (url.startsWith('http')) return url;
-  if (url.startsWith('/')) return `${window.location.origin}${url}`;
+  if (url.startsWith('/')) return `${SERVER_URL}${url}`;
   return url;
 };
 
@@ -82,6 +125,7 @@ const reportItemStatus = (mediaId, status) => {
   });
 };
 
+
 onMounted(() => {
   const params = new URLSearchParams(window.location.search);
   playlistId.value = params.get('playlistId') || 'default';
@@ -93,31 +137,7 @@ onMounted(() => {
 
   websocket.on('connected', async () => {
     status.value = 'Connected';
-    // Fetch playlist via HTTP
-    try {
-      const response = await fetch(`/api/playlists/${playlistId.value}`);
-      if (response.ok) {
-        const playlist = await response.json();
-        console.log('Playlist loaded:', playlist);
-        playlistItems.value = playlist.items || [];
-        defaultMedia.value = playlist.settings?.defaultMedia || null;
-
-        // Initialize statuses as loading
-        playlistItems.value.forEach(item => {
-          reportItemStatus(item.id, 'loading');
-        });
-
-        // Now that we have items, handle any command that came in early
-        if (pendingCommand.value) {
-          console.log('Handling pending command:', pendingCommand.value);
-          const cmd = pendingCommand.value;
-          pendingCommand.value = null; // Clear before handling
-          handleCommand(cmd);
-        }
-      }
-    } catch (error) {
-      console.error('Failed to fetch playlist:', error);
-    }
+    await getPlaylist();
   });
 
   websocket.on('disconnected', () => {
@@ -126,38 +146,12 @@ onMounted(() => {
 
   // Listen for real-time playlist updates
   websocket.on('library:list', (items) => {
-    console.log('Playlist updated:', items);
-    playlistItems.value = items;
-    // Update statuses for new items
-    items.forEach(item => {
-      if (!itemStatuses.value[item.id]) {
-        reportItemStatus(item.id, 'loading');
-      }
-    });
-
-    // Check if we can resume a pending item after a dynamic update
-    if (pendingCommand.value) {
-      const cmd = pendingCommand.value;
-      if (cmd.mediaId && items.some(i => i.id === cmd.mediaId)) {
-        console.log('Handling pending command after update:', cmd);
-        pendingCommand.value = null;
-        handleCommand(cmd);
-      }
-    }
+    updatePlaylistState(items);
   });
 
   websocket.on('playlist:updated', async () => {
     console.log('Playlist updated on server, fetching...');
-    try {
-      const response = await fetch(`/api/playlists/${playlistId.value}`);
-      if (response.ok) {
-        const playlist = await response.json();
-        playlistItems.value = playlist.items || [];
-        defaultMedia.value = playlist.settings?.defaultMedia || null;
-      }
-    } catch (e) {
-      console.error('Failed to refresh playlist:', e);
-    }
+    await getPlaylist();
   });
 
   websocket.on('command', (cmd) => {
@@ -195,6 +189,14 @@ const handleCommand = (cmd) => {
 };
 
 const playItem = (id, startTime = 0) => {
+  if (!id) {
+    playingItemId.value = null;
+    clearTimeout(playbackTimer.value);
+    clearInterval(progressInterval.value);
+    websocket.send('player:status', { status: 'stopped', playlistId: playlistId.value });
+    return;
+  }
+
   // If item failed to load, skip it
   if (itemStatuses.value[id] === 'error') {
     console.warn('Skipping item due to load error:', id);
@@ -222,7 +224,7 @@ const playItem = (id, startTime = 0) => {
     playlistId: playlistId.value
   });
 
-  if (item.type !== 'video' && item.duration) {
+  if (item.duration) {
     startDurationTimer(item.duration);
   }
 };
@@ -280,13 +282,25 @@ const handleMediaError = (e) => {
   }
 }
 
-const handleMediaEnded = (item) => {
-  console.log('Media Ended:', item.id);
-  websocket.send('player:event', { event: 'ended', itemId: item.id });
+const handleMediaEnded = (item, forced = false) => {
+  console.log('Media Ended:', item?.name, 'forced:', forced);
 
-  if (!item.loop) {
+  if (forced) {
+    // Duration timer expired - advance to next
     playNext();
+    websocket.send('player:event', {
+      event: 'timeout',
+      itemId: item.id
+    });
+  } else if (!item.loop) {
+    // Natural end (video finished playing) - advance if not looping
+    playNext();
+    websocket.send('player:event', {
+      event: 'ended',
+      itemId: item.id
+    });
   }
+  // If looping, do nothing - the video will loop automatically
 };
 
 
@@ -313,12 +327,14 @@ const startDurationTimer = (durationMs) => {
   clearInterval(progressInterval.value);
 
   const durationSeconds = durationMs / 1000;
+  console.log('startDurationTimer', durationSeconds, 'ms:', durationMs)
+
   let elapsed = 0;
-  const startTime = Date.now();
+  currentItemStartTime = Date.now();
 
   // Send progress updates every second for non-video items
   progressInterval.value = setInterval(() => {
-    elapsed = (Date.now() - startTime) / 1000;
+    elapsed = (Date.now() - currentItemStartTime) / 1000;
     websocket.send('player:time', {
       itemId: playingItemId.value,
       currentTime: elapsed,
@@ -330,7 +346,8 @@ const startDurationTimer = (durationMs) => {
   // End playback after duration
   playbackTimer.value = setTimeout(() => {
     clearInterval(progressInterval.value);
-    handleMediaEnded(playingItem.value);
+    console.log('Duration timer expired for:', playingItem.value?.name);
+    handleMediaEnded(playingItem.value, true);
   }, durationMs);
 };
 

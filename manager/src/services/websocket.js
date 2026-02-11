@@ -89,6 +89,33 @@ class WebSocketService {
             case 'notification:new':
                 this.store.dispatch('notifications/add', payload);
                 break;
+            case 'electron:display-changed':
+                this.store.dispatch('appData/refreshDisplays');
+                break;
+            case 'conversion:start':
+                this.store.commit('appData/SET_CONVERSION_STATUS', {
+                    mediaId: payload.mediaId,
+                    status: 'converting',
+                    progress: 0
+                });
+                break;
+            case 'conversion:progress':
+                this.store.commit('appData/SET_CONVERSION_STATUS', {
+                    mediaId: payload.mediaId,
+                    status: 'converting',
+                    progress: payload.progress
+                });
+                break;
+            case 'conversion:complete':
+                this.store.commit('appData/REMOVE_CONVERSION_STATUS', payload.mediaId);
+                break;
+            case 'conversion:error':
+                this.store.commit('appData/SET_CONVERSION_STATUS', {
+                    mediaId: payload.mediaId,
+                    status: 'error',
+                    error: payload.error
+                });
+                break;
         }
     }
 

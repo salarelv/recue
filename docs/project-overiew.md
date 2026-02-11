@@ -12,7 +12,16 @@ The server and manager are built with NodeJS and ElectronJS. The player and mana
 
 ## Electron app
 
-The is built into a Electron app. It has a UI for managing the playlist. App can be started with `npm run run:manager`. Build manager app with `npm run build:manager`. It serves the files to the player and manager as static files. The server runs as process in the electron app and is started with the electron app. It opens a window for the manager and a window for the player. It allows the user to choose which screen to use for the player. Player can be fullscreen or windowed. There is also a button to open the manager in a new window.
+The app is deployed as a Electron app. App can be started with `npm run run:electron` and built with `npm run build:electron`. 
+Electron app purpose is to:
+- provide a easy way to launch the app
+- provide a way to get access to OS functions (like available screens)
+- provide a way to package the app into a standalone executable
+- open windows for player and manager
+- enable audio playback without user interaction
+- provide stable browser support for media playback
+
+Electron app will start the server and open a window for manager app. Provide available screens to the server. Open player app in fullscreen mode on the selected screen.
 
 ## Player
 

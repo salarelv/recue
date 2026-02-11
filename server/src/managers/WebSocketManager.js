@@ -56,7 +56,7 @@ class WebSocketManager {
 
     async handleMessage(socket, data) {
         const { type, payload } = data;
-        // console.log(`Received message: ${type}`, payload);
+        console.log(`Received message: ${type}`, payload);
 
         switch (type) {
             case 'session:register':

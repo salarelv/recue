@@ -1,13 +1,13 @@
 <template>
     <div class="media-player">
         <!-- Placeholder Thumbnail (visible while main media loads) -->
-        <img v-if="item" :src="resolveUrl(item.thumbnail)" class="placeholder-image" />
+        <img v-if="item" :src="resolveUrl(item.thumbnailPath || item.thumbnail)" class="placeholder-image" />
 
         <transition name="fade">
             <!-- Image Rendering -->
             <img v-if="item && item.type === 'image'" :key="'img-' + item.id"
-                :src="resolveUrl(item.url || item.path || item.thumbnail)" class="main-media" @load="onLoaded"
-                @error="(e) => (e.target.src = resolveUrl(item.thumbnail))" />
+                :src="resolveUrl(item.url || item.path || item.thumbnailPath || item.thumbnail)" class="main-media"
+                @load="onLoaded" @error="(e) => (e.target.src = resolveUrl(item.thumbnailPath || item.thumbnail))" />
 
             <!-- Video Rendering -->
             <video v-else-if="item && item.type === 'video'" :key="'vid-' + item.id" ref="videoRef" class="main-media"
@@ -22,7 +22,12 @@
                     allowfullscreen @load="onYouTubeLoad"></iframe>
             </div>
 
-            <!-- Fallback / Off Air -->
+            <!-- Website Rendering -->
+            <div v-else-if="item && item.type === 'website'" :key="'web-' + item.id" class="main-media bg-white">
+                <iframe class="w-full h-full border-none" :src="resolveUrl(item.url || item.path)"
+                    @load="onLoaded"></iframe>
+            </div>
+
             <div v-else key="fallback" class="off-air">
                 <span>OFF AIR</span>
                 <span class="message">{{ message }}</span>
@@ -46,6 +51,10 @@ const props = defineProps({
     startTime: {
         type: Number,
         default: 0
+    },
+    serverUrl: {
+        type: String,
+        default: ''
     }
 });
 
@@ -96,8 +105,9 @@ const onYouTubeLoad = () => {
 const resolveUrl = (url) => {
     if (!url) return '';
     if (url.startsWith('http')) return url;
+    if (url.startsWith('//')) return `https:${url}`;
     if (url.startsWith('/')) {
-        return `${window.location.origin}${url}`;
+        return `${props.serverUrl || window.location.origin}${url}`;
     }
     return url;
 };
@@ -111,7 +121,7 @@ const getYouTubeUrl = (url) => {
 
         if (!id) return '';
 
-        const origin = window.location.origin;
+        const origin = props.serverUrl || window.location.origin;
         let embedUrl = `https://www.youtube.com/embed/${id}?autoplay=1&mute=${(props.item?.volume ?? 1) === 0 ? 1 : 0}&controls=0&modestbranding=1&rel=0&enablejsapi=1&playsinline=1&origin=${origin}&widget_referrer=${origin}`;
 
         if (props.startTime > 0) {
@@ -123,7 +133,8 @@ const getYouTubeUrl = (url) => {
     }
 };
 
-const onEnded = () => {
+const onEnded = (e) => {
+    console.log('onEnded', e, props.item)
     emit('ended', props.item);
 };
 
@@ -151,7 +162,7 @@ const onCanPlay = (e) => {
 };
 
 const onLoaded = () => {
-    emit('ready', { duration: props.item.duration || 0 });
+    emit('ready', { duration: props.item?.duration || 0 });
 };
 
 const onError = (e) => {

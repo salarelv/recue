@@ -10,7 +10,7 @@
         class="flex items-start space-x-3 p-3 bg-base-300 rounded-lg border border-white/5 cursor-pointer hover:border-accent hover:bg-base-300/80 transition-all group relative"
         @click="showModal = true">
         <div class="relative w-16 h-10 flex-shrink-0">
-          <img :src="item.thumbnail" class="w-full h-full object-cover rounded bg-black" />
+          <MediaThumbnail :item="item" container-class="w-full h-full rounded" />
           <div
             class="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 rounded transition-opacity">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
@@ -101,6 +101,7 @@
 import { computed, ref } from 'vue';
 import { useStore } from 'vuex';
 import MediaSelectorModal from '../modals/MediaSelectorModal.vue';
+import MediaThumbnail from '../common/MediaThumbnail.vue';
 
 const store = useStore();
 const item = computed(() => store.getters['appData/selectedItem']);
@@ -126,6 +127,8 @@ const replaceMedia = (newMedia) => {
         name: newMedia.name,
         type: newMedia.type,
         thumbnail: newMedia.thumbnail,
+        thumbnailPath: newMedia.thumbnailPath,
+        path: newMedia.path,
         duration: newMedia.duration // Reset duration to match new media default
       }
     });

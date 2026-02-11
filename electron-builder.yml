@@ -1,0 +1,40 @@
+appId: live.recue.app
+productName: Recue
+directories:
+  output: dist-electron
+  buildResources: build
+
+files:
+  - electron/**/*
+  - server/**/*
+  - manager/dist/**/*
+  - player/dist/**/*
+  - package.json
+  - "!**/*.map"
+
+asar: true
+asarUnpack:
+  - server/**/*
+  - node_modules/**/*
+  - manager/dist/**/*
+  - player/dist/**/*
+
+extraResources:
+  - server/storage/**/*
+
+linux:
+  target:
+    - AppImage
+    - Flatpak
+  category: AudioVideo
+
+win:
+  target:
+    - nsis
+    - portable
+
+mac:
+  target:
+    - dmg
+    - zip
+  category: public.app-category.entertainment

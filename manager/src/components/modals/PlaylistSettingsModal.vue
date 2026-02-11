@@ -28,7 +28,7 @@
                     <label class="label text-xs uppercase text-gray-500 font-bold mb-2">Default Media</label>
                     <div v-if="localSettings.defaultMedia"
                         class="flex items-center gap-3 p-3 bg-base-300 rounded-lg border border-white/5 relative group">
-                        <img :src="localSettings.defaultMedia.thumbnail" class="w-12 h-8 object-cover rounded" />
+                        <MediaThumbnail :item="localSettings.defaultMedia" container-class="w-12 h-8 rounded" />
                         <div class="min-w-0 flex-1">
                             <div class="text-sm font-medium text-white truncate">{{ localSettings.defaultMedia.name }}
                             </div>
@@ -79,6 +79,7 @@
 import { ref, computed, watch, reactive } from 'vue';
 import { useStore } from 'vuex';
 import MediaSelectorModal from './MediaSelectorModal.vue';
+import MediaThumbnail from '../common/MediaThumbnail.vue';
 
 const props = defineProps({
     open: Boolean
