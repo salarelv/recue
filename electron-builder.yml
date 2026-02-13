@@ -6,7 +6,7 @@ directories:
 
 publish:
   provider: github
-  owner: algosake
+  owner: salarelv
   repo: recue
 
 files:
