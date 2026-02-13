@@ -22,23 +22,32 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y flatpak flatpak-builder
+          flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo --user
+
 
       - name: Install Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'npm'
+          # cache: 'npm' # Disable cache to avoid Windows EPERM issues
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
-      - name: Install dependencies
+      - name: Install Dependencies (Root)
+        run: npm ci
+
+      - name: Install Dependencies (Manager)
         run: |
-          npm install
-          npm install --prefix manager
-          npm install --prefix player
+          cd manager
+          npm ci
+
+      - name: Install Dependencies (Player)
+        run: |
+          cd player
+          npm ci
 
       # Build the frontend (Manager and Player)
       - name: Build Frontend
