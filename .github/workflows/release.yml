@@ -24,7 +24,10 @@ jobs:
           cache: 'npm'
 
       - name: Install dependencies
-        run: npm ci
+        run: |
+          npm ci
+          npm ci --prefix manager
+          npm ci --prefix player
 
       # Build the frontend (Manager and Player)
       - name: Build Frontend

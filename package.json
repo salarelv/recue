@@ -12,8 +12,9 @@
     "build:manager": "npm run build --prefix manager",
     "build:player": "npm run build --prefix player",
     "build:all": "npm run build:manager && npm run build:player",
-    "build:electron": "npm install && npm run build:all && electron-builder",
-    "package": "npm run build:all && electron-builder",
+    "build:electron": "npm install && npm run install:all && npm run build:all && electron-builder",
+    "install:all": "npm install && npm install --prefix manager && npm install --prefix player",
+    "package": "npm run install:all && npm run build:all && electron-builder",
     "bump:patch": "npm version patch",
     "bump:minor": "npm version minor",
     "bump:major": "npm version major"
