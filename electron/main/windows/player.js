@@ -1,4 +1,4 @@
-const { BrowserWindow, screen } = require('electron');
+const { BrowserWindow, screen, app } = require('electron');
 const path = require('path');
 const EventEmitter = require('events');
 
@@ -34,12 +34,9 @@ class PlayerWindow extends EventEmitter {
                 preload: path.join(__dirname, '../../preload/preload.js'),
                 nodeIntegration: false,
                 contextIsolation: true,
-                // Enable audio autoplay without user gesture
                 autoplayPolicy: 'no-user-gesture-required'
             },
-            title: 'Recue Player',
-            // Kiosk mode for true fullscreen
-            kiosk: false
+            title: 'Recue Player'
         });
 
         // Load player app with playlist ID
@@ -47,7 +44,7 @@ class PlayerWindow extends EventEmitter {
         playerWindow.loadURL(playerUrl);
 
         // Open DevTools in development
-        if (process.env.NODE_ENV !== 'production') {
+        if (!app.isPackaged) {
             playerWindow.webContents.openDevTools();
         }
 

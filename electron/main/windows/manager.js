@@ -1,4 +1,4 @@
-const { BrowserWindow } = require('electron');
+const { BrowserWindow, app } = require('electron');
 const path = require('path');
 
 class ManagerWindow {
@@ -26,11 +26,6 @@ class ManagerWindow {
 
         // Load manager app from server
         this.window.loadURL(`${this.serverUrl}/manager/`);
-
-        // Open DevTools in development
-        if (process.env.NODE_ENV !== 'production') {
-            //this.window.webContents.openDevTools();
-        }
 
         this.window.on('closed', () => {
             this.window = null;

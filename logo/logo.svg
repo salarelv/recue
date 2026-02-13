@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   width="210mm"
+   height="297mm"
+   viewBox="0 0 210 297"
+   version="1.1"
+   id="svg1"
+   inkscape:version="1.4.3 (0d15f75042, 2025-12-25)"
+   sodipodi:docname="logo.svg"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview1"
+     pagecolor="#505050"
+     bordercolor="#ffffff"
+     borderopacity="1"
+     inkscape:showpageshadow="0"
+     inkscape:pageopacity="0"
+     inkscape:pagecheckerboard="1"
+     inkscape:deskcolor="#505050"
+     inkscape:document-units="mm"
+     inkscape:zoom="2.9041807"
+     inkscape:cx="372.73852"
+     inkscape:cy="537.32883"
+     inkscape:window-width="1865"
+     inkscape:window-height="1044"
+     inkscape:window-x="55"
+     inkscape:window-y="0"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="layer1" />
+  <defs
+     id="defs1" />
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1">
+    <path
+       d="m 84.666667,143.80104 c 0,-0.70072 0.773588,-1.12433 1.364112,-0.74774 l 7.746179,4.93977 c 0.554805,0.3538 0.554805,1.15756 0,1.51136 l -7.746179,4.93977 c -0.590524,0.37658 -1.364112,-0.047 -1.364112,-0.74774 z"
+       fill="currentColor"
+       id="path1"
+       style="stroke-width:0.264583" />
+    <rect
+       x="91.54583"
+       y="142.61041"
+       width="4.7624998"
+       height="4.7624998"
+       rx="2.3812499"
+       fill="#3b82f6"
+       id="rect1"
+       style="stroke-width:0.264583"
+       ry="2.3812499" />
+    <path
+       d="m 93.927083,143.66875 v 2.64583 m -1.322917,-1.32291 H 95.25"
+       stroke="#ffffff"
+       stroke-width="2.5"
+       stroke-linecap="round"
+       id="path2" />
+    <text
+       x="99.21875"
+       y="152.13542"
+       fill="currentColor"
+       font-family="sans-serif"
+       font-weight="800"
+       font-size="11.1125px"
+       letter-spacing="-2"
+       id="text2"
+       style="stroke-width:0.264583">recue</text>
+  </g>
+</svg>

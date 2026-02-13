@@ -13,21 +13,8 @@
       "thumbnailPath": "/media/default/media/macarena.jpg",
       "mediaId": "file-1770652654844",
       "transition": "cut",
-      "volume": 1
-    },
-    {
-      "id": "pl-1770653527066",
-      "name": "klipp_tulnukas.mov",
-      "type": "video",
-      "filename": "klipp_tulnukas.mp4",
-      "duration": 68000,
-      "thumbnail": "klipp_tulnukas.jpg",
-      "path": "/media/default/media/klipp_tulnukas.mp4",
-      "thumbnailPath": "/media/default/media/klipp_tulnukas.jpg",
-      "mediaId": "file-1770653410077",
-      "transition": "cut",
       "volume": 1,
-      "start": "cue"
+      "loop": true
     },
     {
       "id": "pl-1770654446697",
@@ -53,6 +40,20 @@
       "path": "/media/default/media/põhiposter.png",
       "thumbnailPath": "/media/default/media/põhiposter_thumb.jpg",
       "mediaId": "file-1770653678418",
+      "transition": "cut",
+      "volume": 1,
+      "start": "cue"
+    },
+    {
+      "id": "pl-1770989168525",
+      "name": "macarena.mp4",
+      "type": "video",
+      "filename": "macarena.mp4",
+      "duration": 12000,
+      "thumbnail": "macarena.jpg",
+      "path": "/media/default/media/macarena.mp4",
+      "thumbnailPath": "/media/default/media/macarena.jpg",
+      "mediaId": "file-1770652654844",
       "transition": "cut",
       "volume": 1
     }

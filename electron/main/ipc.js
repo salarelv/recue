@@ -1,4 +1,5 @@
 const { ipcMain, screen } = require('electron');
+const logger = require('../utils/logger');
 
 class IpcHandlers {
     constructor(serverProcess, managerWindow, playerWindow) {
@@ -24,9 +25,9 @@ class IpcHandlers {
             }));
         });
 
-        // Open player on specific display
+        //Open player on specific display
         ipcMain.handle('open-player', async (event, displayId, playlistId) => {
-            console.log(`[IPC] Opening player on display ${displayId} with playlist ${playlistId}`);
+            logger.info('IPC', `Opening player on display ${displayId} with playlist ${playlistId}`);
             const window = this.playerWindow.create(displayId, playlistId);
             this.notifyDisplayChange();
             return window !== null;
@@ -34,7 +35,7 @@ class IpcHandlers {
 
         // Close player window
         ipcMain.handle('close-player', async (event, displayId) => {
-            console.log(`[IPC] Closing player on display ${displayId || 'all'}`);
+            logger.info('IPC', `Closing player on display ${displayId || 'all'}`);
             this.playerWindow.close(displayId);
             this.notifyDisplayChange();
             return true;
@@ -42,13 +43,11 @@ class IpcHandlers {
 
         // Listen for window closures to update UI
         this.playerWindow.on('display-changed', () => {
-            console.log('[IPC] Display window closed, notifying server');
+            logger.debug('IPC', 'Display window closed, notifying server');
             this.notifyDisplayChange();
         });
 
-        // Create manager window
-        this.managerWindow.create();
-        console.log('[IPC] Handlers registered');
+        logger.info('IPC', 'Handlers registered');
     }
 
     async notifyDisplayChange() {
@@ -56,10 +55,10 @@ class IpcHandlers {
             const url = `${this.serverProcess.getServerUrl()}/api/displays/event`;
             const http = require('http');
             const req = http.request(url, { method: 'POST' });
-            req.on('error', (e) => console.error(`[IPC] Failed to notify display change: ${e.message}`));
+            req.on('error', (e) => logger.error('IPC', `Failed to notify display change: ${e.message}`));
             req.end();
         } catch (e) {
-            console.error('[IPC] Error in notifyDisplayChange:', e);
+            logger.error('IPC', 'Error in notifyDisplayChange:', e);
         }
     }
 }

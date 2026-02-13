@@ -5,6 +5,8 @@ const cors = require('@fastify/cors');
 const WebSocketManager = require('./managers/WebSocketManager');
 const OSCManager = require('./managers/OSCManager');
 const ConversionService = require('./services/ConversionService');
+const logger = require('./utils/logger');
+const { resolveStoragePath } = require('./utils/pathUtils');
 
 async function startServer(port) {
     const fastify = Fastify({ logger: true });
@@ -45,8 +47,14 @@ async function startServer(port) {
         decorateReply: false // Avoid decorator conflict
     });
 
+    const storageRoot = resolveStoragePath(
+        process.env.RECUE_STORAGE_PATH,
+        path.join(__dirname, '../storage'),
+        'playlists'
+    );
+
     fastify.register(require('@fastify/static'), {
-        root: path.join(__dirname, '../storage/playlists'),
+        root: storageRoot,
         prefix: '/media',
         decorateReply: false,
         acceptRanges: true // Required for video streaming
@@ -72,9 +80,9 @@ async function startServer(port) {
             if (data.fields.metadata) {
                 try {
                     metadata = JSON.parse(data.fields.metadata.value);
-                    console.log(`[Upload] Received metadata for ${data.filename}:`, metadata.type);
+                    logger.debug('Upload', `Received metadata for ${data.filename}:`, metadata.type);
                 } catch (e) {
-                    console.error('[Upload] Error parsing metadata field', e);
+                    logger.error('Upload', 'Error parsing metadata field', e);
                 }
             }
 
@@ -142,7 +150,7 @@ async function startServer(port) {
                                 }
                             })
                             .catch((err) => {
-                                console.error('[Upload] Conversion failed:', err);
+                                logger.error('Upload', 'Conversion failed:', err);
                                 if (wsManager) {
                                     wsManager.broadcastToPlaylist(playlistId, 'conversion:error', { mediaId, error: err.message });
                                 }
@@ -155,38 +163,39 @@ async function startServer(port) {
                 reply.code(500).send({ message: 'Upload failed: Could not save file' });
             }
         } catch (err) {
-            console.error('[Upload] Error:', err);
+            logger.error('Upload', 'Upload error:', err);
             reply.code(500).send({ message: 'Upload error: ' + err.message });
         }
-    });
-
-    // Add dynamic item
-    fastify.post('/api/library/item', async (req, reply) => {
-        const { playlistId, item } = req.body;
-        if (!playlistId || !item) {
-            reply.code(400).send({ error: 'PlaylistId and item required' });
-            return;
-        }
-
-        const MediaManager = require('./managers/MediaManager');
-        if (await MediaManager.addDynamicItem(playlistId, item)) {
-            if (oscManager.wsManager) {
-                const media = await MediaManager.listMedia(playlistId);
-                oscManager.wsManager.broadcastToPlaylist(playlistId, 'library:list', media);
-            }
-            return { message: 'Item added' };
-        } else {
-            reply.code(500).send({ error: 'Failed to add item' });
-        }
-    });
-
-    try {
-        await fastify.listen({ port, host: '0.0.0.0' });
-        return fastify;
-    } catch (err) {
-        fastify.log.error(err);
-        process.exit(1);
     }
+    });
+
+// Add dynamic item
+fastify.post('/api/library/item', async (req, reply) => {
+    const { playlistId, item } = req.body;
+    if (!playlistId || !item) {
+        reply.code(400).send({ error: 'PlaylistId and item required' });
+        return;
+    }
+
+    const MediaManager = require('./managers/MediaManager');
+    if (await MediaManager.addDynamicItem(playlistId, item)) {
+        if (oscManager.wsManager) {
+            const media = await MediaManager.listMedia(playlistId);
+            oscManager.wsManager.broadcastToPlaylist(playlistId, 'library:list', media);
+        }
+        return { message: 'Item added' };
+    } else {
+        reply.code(500).send({ error: 'Failed to add item' });
+    }
+});
+
+try {
+    await fastify.listen({ port, host: '0.0.0.0' });
+    return fastify;
+} catch (err) {
+    fastify.log.error(err);
+    process.exit(1);
+}
 }
 
 module.exports = startServer;

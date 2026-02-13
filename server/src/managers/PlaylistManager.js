@@ -1,10 +1,17 @@
 const fs = require('fs').promises;
 const path = require('path');
 const StateManager = require('./StateManager');
+const logger = require('../utils/logger');
+const { decorateMediaItem, resolveStoragePath } = require('../utils/pathUtils');
 
 class PlaylistManager {
     constructor(storagePath) {
-        this.storagePath = storagePath || path.join(__dirname, '../../storage/playlists');
+        const defaultPath = path.join(__dirname, '../../storage');
+        this.storagePath = storagePath || resolveStoragePath(
+            process.env.RECUE_STORAGE_PATH,
+            defaultPath,
+            'playlists'
+        );
         this.configPath = path.join(this.storagePath, '../config.json');
         this.ensureStorage();
     }
@@ -24,7 +31,7 @@ class PlaylistManager {
             const data = { latestPlaylistId: id };
             await fs.writeFile(this.configPath, JSON.stringify(data, null, 2));
         } catch (error) {
-            console.error('Error saving latest playlist ID:', error);
+            logger.error('PlaylistManager', 'Error saving latest playlist ID:', error);
         }
     }
 
@@ -37,7 +44,7 @@ class PlaylistManager {
             const playlistDirs = entries.filter(dirent => dirent.isDirectory()).map(dirent => dirent.name);
 
             if (playlistDirs.length === 0) {
-                console.log('No playlists found, creating default playlist');
+                logger.info('PlaylistManager', 'No playlists found, creating default playlist');
                 await this.savePlaylist('default', {
                     name: 'Default Playlist',
                     items: []
@@ -49,7 +56,7 @@ class PlaylistManager {
             StateManager.updatePlayerState({ playlistId: latestId });
 
         } catch (error) {
-            console.error('Error creating storage directory or default playlist:', error);
+            logger.error('PlaylistManager', 'Error creating storage directory or default playlist:', error);
         }
     }
 
@@ -67,13 +74,13 @@ class PlaylistManager {
                         const playlist = JSON.parse(content);
                         playlists.push(this._decoratePlaylist(playlist));
                     } catch (e) {
-                        // console.warn(`Skipping invalid playlist directory ${id}:`, e.message);
+                        // Skip directories without valid playlist.json
                     }
                 }
             }
             return playlists;
         } catch (error) {
-            console.error('Error listing playlists:', error);
+            logger.error('PlaylistManager', 'Error listing playlists:', error);
             return [];
         }
     }
@@ -85,7 +92,7 @@ class PlaylistManager {
             const playlist = JSON.parse(content);
             return this._decoratePlaylist(playlist);
         } catch (error) {
-            console.error(`Error getting playlist ${id}:`, error);
+            logger.error('PlaylistManager', `Error getting playlist ${id}:`, error);
             return null;
         }
     }
@@ -93,11 +100,17 @@ class PlaylistManager {
     _decoratePlaylist(playlist) {
         if (!playlist || !playlist.items) return playlist;
         const playlistId = playlist.id;
-        playlist.items = playlist.items.map(m => ({
-            ...m,
-            path: (m.type === 'image' || m.type === 'video') && m.filename ? `/media/${playlistId}/media/${m.filename}` : m.path,
-            thumbnailPath: m.thumbnail && !m.thumbnail.startsWith('data:') ? `/media/${playlistId}/media/${m.thumbnail}` : m.thumbnailPath
-        }));
+
+        const decorate = (m) => decorateMediaItem(m, playlistId);
+
+        // Decorate items
+        playlist.items = playlist.items.map(decorate);
+
+        // Decorate defaultMedia in settings
+        if (playlist.settings && playlist.settings.defaultMedia) {
+            playlist.settings.defaultMedia = decorate(playlist.settings.defaultMedia);
+        }
+
         return playlist;
     }
 
@@ -115,7 +128,7 @@ class PlaylistManager {
             await fs.writeFile(filePath, JSON.stringify(data, null, 2));
             return true;
         } catch (error) {
-            console.error(`Error saving playlist ${id}:`, error);
+            logger.error('PlaylistManager', `Error saving playlist ${id}:`, error);
             return false;
         }
     }
@@ -127,7 +140,7 @@ class PlaylistManager {
             await fs.rm(playlistDir, { recursive: true, force: true });
             return true;
         } catch (error) {
-            console.error(`Error deleting playlist ${id}:`, error);
+            logger.error('PlaylistManager', `Error deleting playlist ${id}:`, error);
             return false;
         }
     }
@@ -155,7 +168,7 @@ class PlaylistManager {
             }
             return false;
         } catch (error) {
-            console.error(`Error updating media item ${mediaId} in playlist ${playlistId}:`, error);
+            logger.error('PlaylistManager', `Error updating media item ${mediaId} in playlist ${playlistId}:`, error);
             return false;
         }
     }

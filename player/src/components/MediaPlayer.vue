@@ -106,10 +106,19 @@ const resolveUrl = (url) => {
     if (!url) return '';
     if (url.startsWith('http')) return url;
     if (url.startsWith('//')) return `https:${url}`;
+    if (url.startsWith('data:')) return url;
+
+    // If it starts with /, it's an absolute path from the server root
     if (url.startsWith('/')) {
         return `${props.serverUrl || window.location.origin}${url}`;
     }
-    return url;
+
+    // If it doesn't start with / and isn't a full URL, it's likely a relative media path
+    // But without knowing the playlist ID here, we can't perfectly resolve it.
+    // However, we should at least not let it be relative to the /player/ path.
+    // If it looks like a filename, it might be a legacy or undecorated item.
+    // We'll try to prepend the server URL anyway.
+    return `${props.serverUrl || window.location.origin}/${url}`;
 };
 
 const getYouTubeUrl = (url) => {
@@ -123,6 +132,10 @@ const getYouTubeUrl = (url) => {
 
         const origin = props.serverUrl || window.location.origin;
         let embedUrl = `https://www.youtube.com/embed/${id}?autoplay=1&mute=${(props.item?.volume ?? 1) === 0 ? 1 : 0}&controls=0&modestbranding=1&rel=0&enablejsapi=1&playsinline=1&origin=${origin}&widget_referrer=${origin}`;
+
+        if (props.item?.loop) {
+            embedUrl += `&loop=1&playlist=${id}`;
+        }
 
         if (props.startTime > 0) {
             embedUrl += `&start=${Math.floor(props.startTime)}`;

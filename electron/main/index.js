@@ -5,6 +5,7 @@ const ManagerWindow = require('./windows/manager');
 const PlayerWindow = require('./windows/player');
 const IpcHandlers = require('./ipc');
 const { createMenu } = require('./menu');
+const logger = require('../utils/logger');
 
 // Initialize services
 const serverProcess = new ServerProcess();
@@ -17,11 +18,11 @@ async function initialize() {
     createMenu();
     try {
         // Start the server first
-        console.log('[Main] Starting server...');
+        logger.info('Main', 'Starting server...');
         await serverProcess.start();
 
         const serverUrl = serverProcess.getServerUrl();
-        console.log(`[Main] Server ready at ${serverUrl}`);
+        logger.info('Main', `Server ready at ${serverUrl}`);
 
         // Initialize window managers
         managerWindow = new ManagerWindow(serverUrl);
@@ -33,10 +34,10 @@ async function initialize() {
 
         // Create manager window
         managerWindow.create();
-        console.log('[Main] Manager window created');
+        logger.info('Main', 'Manager window created');
 
     } catch (error) {
-        console.error('[Main] Failed to initialize:', error);
+        logger.error('Main', 'Failed to initialize:', error);
         app.quit();
     }
 }
@@ -61,15 +62,15 @@ app.on('activate', () => {
 });
 
 app.on('before-quit', () => {
-    console.log('[Main] Shutting down...');
+    logger.info('Main', 'Shutting down...');
     serverProcess.stop();
 });
 
 // Handle uncaught exceptions
 process.on('uncaughtException', (error) => {
-    console.error('[Main] Uncaught exception:', error);
+    logger.error('Main', 'Uncaught exception:', error);
 });
 
 process.on('unhandledRejection', (error) => {
-    console.error('[Main] Unhandled rejection:', error);
+    logger.error('Main', 'Unhandled rejection:', error);
 });

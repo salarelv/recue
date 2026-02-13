@@ -1,4 +1,5 @@
-const { app, Menu, BrowserWindow, shell } = require('electron');
+const { app, Menu, BrowserWindow, shell, dialog } = require('electron');
+const fs = require('fs');
 const path = require('path');
 
 let aboutWindow = null;
@@ -152,7 +153,82 @@ function createMenu() {
         {
             label: 'File',
             submenu: [
-                isMac ? { role: 'close' } : { role: 'quit' }
+                isMac ? { role: 'close' } : { role: 'quit' },
+                { type: 'separator' },
+                {
+                    label: 'Change Storage Location...',
+                    click: async () => {
+                        const { default: Store } = await import('electron-store');
+                        const store = new Store();
+                        const currentPath = store.get('storagePath');
+
+                        const result = await dialog.showOpenDialog(BrowserWindow.getFocusedWindow(), {
+                            title: 'Select Storage Location',
+                            defaultPath: currentPath,
+                            properties: ['openDirectory', 'createDirectory']
+                        });
+
+                        if (!result.canceled && result.filePaths.length > 0) {
+                            const newPath = result.filePaths[0];
+
+                            // Ask for migration
+                            const { response: migrationResponse } = await dialog.showMessageBox(BrowserWindow.getFocusedWindow(), {
+                                type: 'question',
+                                title: 'Migrate Data?',
+                                message: 'Do you want to copy your existing playlists and media to the new location?',
+                                buttons: ['Yes, copy data', 'No, start fresh', 'Cancel'],
+                                defaultId: 0,
+                                cancelId: 2
+                            });
+
+                            if (migrationResponse === 2) return; // Cancel
+
+                            if (migrationResponse === 0) {
+                                const oldRoot = store.get('storagePath');
+                                let sourcePath;
+
+                                if (oldRoot) {
+                                    sourcePath = path.join(oldRoot, 'playlists');
+                                } else {
+                                    // Determine default path based on environment
+                                    if (app.isPackaged) {
+                                        sourcePath = path.join(process.resourcesPath, 'app.asar.unpacked/server/storage/playlists');
+                                    } else {
+                                        sourcePath = path.join(__dirname, '../../server/storage/playlists');
+                                    }
+                                }
+
+                                const destPath = path.join(newPath, 'playlists');
+
+                                try {
+                                    if (fs.existsSync(sourcePath)) {
+                                        // Use cp for recursive copy (Node 16.7+)
+                                        // Electron 28+ uses Node 18+
+                                        await fs.promises.cp(sourcePath, destPath, { recursive: true });
+                                    }
+                                } catch (error) {
+                                    dialog.showErrorBox('Migration Failed', `Failed to copy data: ${error.message}`);
+                                    return;
+                                }
+                            }
+
+                            store.set('storagePath', newPath);
+
+                            const response = await dialog.showMessageBox(BrowserWindow.getFocusedWindow(), {
+                                type: 'info',
+                                title: 'Restart Required',
+                                message: 'The application needs to restart to apply the new storage location.',
+                                buttons: ['Restart Now', 'Later'],
+                                defaultId: 0
+                            });
+
+                            if (response.response === 0) {
+                                app.relaunch();
+                                app.quit();
+                            }
+                        }
+                    }
+                }
             ]
         },
         // { role: 'editMenu' }
@@ -190,7 +266,7 @@ function createMenu() {
             submenu: [
                 { role: 'reload' },
                 { role: 'forceReload' },
-                { role: 'toggleDevTools' },
+                { role: 'toggleDevTools', accelerator: 'F12' },
                 { type: 'separator' },
                 { role: 'resetZoom' },
                 { role: 'zoomIn' },

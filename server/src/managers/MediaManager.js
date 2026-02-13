@@ -1,12 +1,19 @@
 const fs = require('fs').promises;
 const path = require('path');
 const ConversionService = require('../services/ConversionService');
+const logger = require('../utils/logger');
+const { decorateMediaItem, resolveStoragePath } = require('../utils/pathUtils');
 
 const DEFAULT_DURATION = 10000;
 
 class MediaManager {
     constructor() {
-        this.baseStoragePath = path.join(__dirname, '../../storage/playlists');
+        const defaultPath = path.join(__dirname, '../../storage/playlists');
+        this.baseStoragePath = resolveStoragePath(
+            process.env.RECUE_STORAGE_PATH,
+            path.join(__dirname, '../../storage'),
+            'playlists'
+        );
     }
 
     getPlaylistPath(playlistId) {
@@ -25,7 +32,7 @@ class MediaManager {
         try {
             await fs.mkdir(this.getMediaPath(playlistId), { recursive: true });
         } catch (error) {
-            console.error(`Error creating media storage for playlist ${playlistId}:`, error);
+            logger.error('MediaManager', `Error creating media storage for playlist ${playlistId}:`, error);
         }
     }
 
@@ -37,23 +44,17 @@ class MediaManager {
             try {
                 const content = await fs.readFile(configPath, 'utf-8');
                 let media = JSON.parse(content);
-                return media.map(m => this._decorateItem(m, playlistId));
+                return media.map(m => decorateMediaItem(m, playlistId));
             } catch (e) {
                 return await this.syncMedia(playlistId);
             }
         } catch (error) {
-            console.error('Error listing media:', error);
+            logger.error('MediaManager', 'Error listing media:', error);
             return [];
         }
     }
 
-    _decorateItem(item, playlistId) {
-        return {
-            ...item,
-            path: (item.type === 'image' || item.type === 'video') && item.filename ? `/media/${playlistId}/media/${item.filename}` : item.path,
-            thumbnailPath: item.thumbnail && !item.thumbnail.startsWith('data:') ? `/media/${playlistId}/media/${item.thumbnail}` : item.thumbnailPath
-        };
-    }
+
 
     async syncMedia(playlistId) {
         try {
@@ -67,7 +68,7 @@ class MediaManager {
                 const content = await fs.readFile(configPath, 'utf-8');
                 currentMedia = JSON.parse(content);
             } catch (e) {
-                // Config missing
+                // Config file doesn't exist yet, will be created
             }
 
             // Scan directory
@@ -75,7 +76,7 @@ class MediaManager {
             try {
                 files = await fs.readdir(mediaPath);
             } catch (e) {
-                // Directory might not exist or empty
+                // Directory doesn't exist yet, will be created
             }
 
             const validExtensions = ['.mp4', '.webm', '.ogg', '.jpg', '.jpeg', '.png', '.gif', '.svg'];
@@ -92,18 +93,8 @@ class MediaManager {
                 const ext = path.extname(file).toLowerCase();
                 if (!validExtensions.includes(ext)) continue;
 
-                // Skip thumbnail files (ending in _thumb.jpg or being .jpg but having a parent) -> filtering by naming convention is hard properly
-                // But we generate _thumb.jpg.
+                // Skip thumbnail files
                 if (file.endsWith('_thumb.jpg')) continue;
-                // Also ignore generated thumbnails from video conversion (same name as video but .jpg) if video exists?
-                // Video conversion makes video.jpg.
-                // If video.mp4 exists, ignore video.jpg?
-                // Sync logic needs to be smart.
-                // For now, simple check: if name matches a video but ext is jpg, it might be a thumbnail.
-                const basename = path.basename(file, ext);
-                if (file.endsWith('_thumb.jpg')) {
-                    continue; // Skip standardized thumbnail
-                }
 
 
                 const exists = currentMedia.find(m => m.filename === file);
@@ -127,19 +118,18 @@ class MediaManager {
             await fs.writeFile(configPath, JSON.stringify(currentMedia, null, 2));
 
             // Return decorated media
-            // Return decorated media
-            return currentMedia.map(m => this._decorateItem(m, playlistId));
+            return currentMedia.map(m => decorateMediaItem(m, playlistId));
 
         } catch (error) {
-            console.error(`Error syncing media for ${playlistId}:`, error);
+            logger.error('MediaManager', `Error syncing media for ${playlistId}:`, error);
             return [];
         }
     }
 
     async saveFile(playlistId, file, metadata = {}) {
         try {
-            console.log(`[MediaManager] Saving file: ${file.filename} for playlist: ${playlistId}`);
-            console.log(`[MediaManager] Metadata:`, JSON.stringify(metadata).substring(0, 100) + '...');
+            logger.debug('MediaManager', `Saving file: ${file.filename} for playlist: ${playlistId}`);
+            logger.debug('MediaManager', `Metadata: ${JSON.stringify(metadata).substring(0, 100)}...`);
 
             await this.ensureMediaStorage(playlistId);
             const filename = file.filename;
@@ -174,9 +164,9 @@ class MediaManager {
                     thumbnailFilename = filename.replace(ext, '_thumb.jpg');
                     const thumbnailPath = path.join(this.getMediaPath(playlistId), thumbnailFilename);
                     await ConversionService.generateImageThumbnail(savePath, thumbnailPath);
-                    console.log(`[MediaManager] Generated image thumbnail: ${thumbnailFilename}`);
+                    logger.info('MediaManager', `Generated image thumbnail: ${thumbnailFilename}`);
                 } catch (e) {
-                    console.error(`[MediaManager] Failed to generate image thumbnail: ${e.message}`);
+                    logger.error('MediaManager', `Failed to generate image thumbnail: ${e.message}`);
                     thumbnailFilename = '';
                 }
             }
@@ -192,19 +182,19 @@ class MediaManager {
             };
 
             if (existingIdx >= 0) {
-                console.log(`[MediaManager] Updating existing entry at index ${existingIdx}`);
+                logger.debug('MediaManager', `Updating existing entry at index ${existingIdx}`);
                 // Merge, but prefer new metadata if provided (except for video fields we want to recalc)
                 rawList[existingIdx] = { ...rawList[existingIdx], ...newItem };
             } else {
-                console.log(`[MediaManager] Adding new entry`);
+                logger.debug('MediaManager', 'Adding new entry');
                 rawList.push(newItem);
             }
 
             await this.saveRawConfig(playlistId, rawList);
-            console.log(`[MediaManager] Saved file and updated config successfully`);
-            return this._decorateItem(newItem, playlistId); // Return the item for conversion tracking
+            logger.info('MediaManager', 'Saved file and updated config successfully');
+            return decorateMediaItem(newItem, playlistId); // Return the item for conversion tracking
         } catch (error) {
-            console.error('[MediaManager] Error saving file:', error);
+            logger.error('MediaManager', 'Error saving file:', error);
             return null;
         }
     }
@@ -220,13 +210,12 @@ class MediaManager {
             if (item) {
                 Object.assign(item, updates);
                 await this.saveRawConfig(playlistId, rawList);
-                console.log(`[MediaManager] Updated metadata for ${mediaId}:`, Object.keys(updates));
-                // Also update the cached/decorated list if needed, but listMedia re-reads it.
+                logger.debug('MediaManager', `Updated metadata for ${mediaId}:`, Object.keys(updates));
                 return true;
             }
             return false;
         } catch (error) {
-            console.error(`Error updating media metadata for ${mediaId}:`, error);
+            logger.error('MediaManager', `Error updating media metadata for ${mediaId}:`, error);
             return false;
         }
     }
@@ -242,7 +231,7 @@ class MediaManager {
             await this.saveRawConfig(playlistId, rawList);
             return true;
         } catch (error) {
-            console.error('Error adding dynamic item:', error);
+            logger.error('MediaManager', 'Error adding dynamic item:', error);
             return false;
         }
     }
@@ -278,11 +267,9 @@ class MediaManager {
                     const thumbPath = filePath.replace(path.extname(filePath), '_thumb.jpg');
                     try { await fs.unlink(thumbPath); } catch (e) { }
 
-                    console.log(`[MediaManager] Deleted file: ${filePath}`);
+                    logger.info('MediaManager', `Deleted file: ${filePath}`);
                 } catch (err) {
-                    console.error(`[MediaManager] Error deleting file ${filePath}:`, err);
-                    // Continue anyway to keep JSON in sync? Or fail?
-                    // Usually better to keep going if the file is gone or inaccessible.
+                    logger.error('MediaManager', `Error deleting file ${filePath}:`, err);
                 }
             }
 
@@ -294,7 +281,7 @@ class MediaManager {
 
             return { success: true, playlistModified };
         } catch (error) {
-            console.error('[MediaManager] Error deleting media:', error);
+            logger.error('MediaManager', 'Error deleting media:', error);
             return { success: false };
         }
     }
@@ -318,7 +305,7 @@ class MediaManager {
             });
 
             if (playlist.items.length !== initialCount) {
-                console.log(`[MediaManager] Removed ${initialCount - playlist.items.length} items from playlist ${playlistId}`);
+                logger.info('MediaManager', `Removed ${initialCount - playlist.items.length} items from playlist ${playlistId}`);
                 await fs.writeFile(playlistPath, JSON.stringify(playlist, null, 2));
                 return true;
             }

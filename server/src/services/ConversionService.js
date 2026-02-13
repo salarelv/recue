@@ -2,6 +2,7 @@ const { spawn } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 const EventEmitter = require('events');
+const logger = require('../utils/logger');
 
 // Get ffmpeg binary path from ffmpeg-static
 const ffmpegPath = require('ffmpeg-static');
@@ -30,7 +31,7 @@ class ConversionService extends EventEmitter {
      */
     async convert(inputPath, mediaId, playlistId) {
         if (!inputPath) {
-            console.error('[ConversionService] No input path provided');
+            logger.error('ConversionService', 'No input path provided');
             return Promise.reject(new Error('No input path provided'));
         }
 
@@ -47,8 +48,8 @@ class ConversionService extends EventEmitter {
             isTempOutput = true;
         }
 
-        console.log(`[ConversionService] Input: ${inputPath}`);
-        console.log(`[ConversionService] Output: ${actualOutputPath}`);
+        logger.debug('ConversionService', `Input: ${inputPath}`);
+        logger.debug('ConversionService', `Output: ${actualOutputPath}`);
 
         // Verify input file exists and has size
         try {
@@ -57,12 +58,12 @@ class ConversionService extends EventEmitter {
                 throw new Error('Input file is empty');
             }
         } catch (e) {
-            console.error(`[ConversionService] Input file verification failed: ${e.message}`);
+            logger.error('ConversionService', `Input file verification failed: ${e.message}`);
             return Promise.reject(e);
         }
 
         return new Promise((resolve, reject) => {
-            console.log(`[ConversionService] Starting conversion...`);
+            logger.info('ConversionService', 'Starting conversion...');
 
             this.emit('start', { mediaId, playlistId, inputPath });
 
@@ -111,19 +112,21 @@ class ConversionService extends EventEmitter {
 
                 ffmpeg.stderr.on('data', (data) => {
                     const msg = data.toString();
-                    if (msg.includes('Error') || msg.includes('error')) console.error(`[ConversionService] ffmpeg error: ${msg}`);
+                    if (msg.includes('Error') || msg.includes('error')) {
+                        logger.error('ConversionService', 'ffmpeg error:', msg);
+                    }
                 });
 
                 ffmpeg.on('close', async (code) => {
                     this.activeConversions.delete(mediaId);
                     if (code === 0) {
-                        console.log(`[ConversionService] Conversion complete.`);
+                        logger.info('ConversionService', 'Conversion complete.');
 
                         // Generate thumbnail
                         try {
                             await this.generateThumbnail(actualOutputPath, thumbnailPath);
                         } catch (e) {
-                            console.error(`[ConversionService] Thumbnail generation failed: ${e.message}`);
+                            logger.error('ConversionService', `Thumbnail generation failed: ${e.message}`);
                         }
 
                         // Handle file moves/deletes
@@ -132,7 +135,7 @@ class ConversionService extends EventEmitter {
                             try {
                                 await fs.promises.rename(actualOutputPath, finalOutputPath);
                             } catch (e) {
-                                console.error(`[ConversionService] Failed to overwrite original: ${e.message}`);
+                                logger.error('ConversionService', `Failed to overwrite original: ${e.message}`);
                                 reject(e);
                                 return;
                             }
@@ -142,7 +145,7 @@ class ConversionService extends EventEmitter {
                                 try {
                                     await fs.promises.unlink(inputPath);
                                 } catch (e) {
-                                    console.warn(`[ConversionService] Could not delete input: ${e.message}`);
+                                    logger.warn('ConversionService', `Could not delete input: ${e.message}`);
                                 }
                             }
                         }
@@ -227,7 +230,7 @@ class ConversionService extends EventEmitter {
         if (conversion && conversion.process) {
             conversion.process.kill('SIGTERM');
             this.activeConversions.delete(mediaId);
-            console.log(`[ConversionService] Cancelled conversion: ${mediaId}`);
+            logger.info('ConversionService', `Cancelled conversion: ${mediaId}`);
         }
     }
 

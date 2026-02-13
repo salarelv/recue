@@ -111,8 +111,11 @@ const updatePlaylistState = (items, defaultMediaItem = undefined) => {
 const resolveUrl = (url) => {
   if (!url) return '';
   if (url.startsWith('http')) return url;
+  if (url.startsWith('//')) return `https:${url}`;
+  if (url.startsWith('data:')) return url;
   if (url.startsWith('/')) return `${SERVER_URL}${url}`;
-  return url;
+  // Fallback for relative paths/filenames
+  return `${SERVER_URL}/${url}`;
 };
 
 const reportItemStatus = (mediaId, status) => {
@@ -224,7 +227,7 @@ const playItem = (id, startTime = 0) => {
     playlistId: playlistId.value
   });
 
-  if (item.duration) {
+  if (item.duration && !item.loop) {
     startDurationTimer(item.duration);
   }
 };
@@ -299,8 +302,15 @@ const handleMediaEnded = (item, forced = false) => {
       event: 'ended',
       itemId: item.id
     });
+  } else {
+    // If looping, the video/player itself should handle the restart.
+    // We just log it for debug and send a looping event if desired.
+    console.log('Media looping:', item.name);
+    websocket.send('player:event', {
+      event: 'looping',
+      itemId: item.id
+    });
   }
-  // If looping, do nothing - the video will loop automatically
 };
 
 
