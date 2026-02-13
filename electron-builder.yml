@@ -2,7 +2,12 @@ appId: live.recue.app
 productName: Recue
 directories:
   output: dist-electron
-  buildResources: build
+
+
+publish:
+  provider: github
+  owner: algosake
+  repo: recue
 
 files:
   - electron/**/*
