@@ -17,17 +17,28 @@ jobs:
       - name: Check out Git repository
         uses: actions/checkout@v4
 
+      - name: Install Flatpak (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y flatpak flatpak-builder
+
       - name: Install Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: 'npm'
 
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
       - name: Install dependencies
         run: |
-          npm ci
-          npm ci --prefix manager
-          npm ci --prefix player
+          npm install
+          npm install --prefix manager
+          npm install --prefix player
 
       # Build the frontend (Manager and Player)
       - name: Build Frontend
