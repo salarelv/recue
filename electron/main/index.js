@@ -1,5 +1,14 @@
 const { app, BrowserWindow } = require('electron');
 const path = require('path');
+
+// Flatpak workaround: ELECTRON_RUN_AS_NODE is often ignored in sandbox.
+// If we find the server script in arguments, execute it and stop here.
+const serverArg = process.argv.find(arg => arg.includes('server/src/index.js'));
+if (serverArg) {
+    require(serverArg);
+    return;
+}
+
 const ServerProcess = require('../services/serverProcess');
 const ManagerWindow = require('./windows/manager');
 const PlayerWindow = require('./windows/player');

@@ -171,6 +171,21 @@ function createMenu() {
                         if (!result.canceled && result.filePaths.length > 0) {
                             const newPath = result.filePaths[0];
 
+                            // Normalize paths for comparison
+                            const normalizedNew = path.normalize(path.resolve(newPath));
+                            const normalizedCurrent = currentPath ? path.normalize(path.resolve(currentPath)) : null;
+
+                            // Check if user selected the same path
+                            if (normalizedCurrent && normalizedCurrent === normalizedNew) {
+                                dialog.showMessageBox(BrowserWindow.getFocusedWindow(), {
+                                    type: 'info',
+                                    title: 'Same Location Selected',
+                                    message: 'The selected folder is already your current storage location.',
+                                    detail: `Current storage: ${normalizedCurrent}`
+                                });
+                                return;
+                            }
+
                             // Ask for migration
                             const { response: migrationResponse } = await dialog.showMessageBox(BrowserWindow.getFocusedWindow(), {
                                 type: 'question',
@@ -187,28 +202,59 @@ function createMenu() {
                                 const oldRoot = store.get('storagePath');
                                 let sourcePath;
 
-                                if (oldRoot) {
-                                    sourcePath = path.join(oldRoot, 'playlists');
+                                // Migrate existing data if there is a current path
+                                if (currentPath) {
+                                    const sourcePath = path.join(currentPath, 'playlists');
+                                    const destPath = path.join(newPath, 'playlists');
+
+                                    try {
+                                        if (fs.existsSync(sourcePath)) {
+                                            // Use cp for recursive copy (Node 16.7+)
+                                            // Electron 28+ uses Node 18+
+                                            await fs.promises.cp(sourcePath, destPath, { recursive: true });
+                                        }
+                                    } catch (error) {
+                                        let errorMessage = 'An error occurred while copying your media files.';
+
+                                        // Provide user-friendly error messages for common cases
+                                        if (error.message.includes('EINVAL') || error.message.includes('cannot be the same')) {
+                                            errorMessage = 'The source and destination folders are the same. Please choose a different location.';
+                                        } else if (error.message.includes('EACCES') || error.message.includes('permission denied')) {
+                                            errorMessage = 'Permission denied. Please make sure you have write access to the selected folder.';
+                                        } else if (error.message.includes('ENOSPC')) {
+                                            errorMessage = 'Not enough disk space available to copy your media files.';
+                                        } else {
+                                            errorMessage += `\n\nTechnical details: ${error.message}`;
+                                        }
+
+                                        dialog.showErrorBox('Migration Failed', errorMessage);
+                                        return;
+                                    }
                                 } else {
-                                    // Determine default path based on environment
+                                    // If no currentPath, determine default source for initial setup
+                                    let sourcePath;
                                     if (app.isPackaged) {
                                         sourcePath = path.join(process.resourcesPath, 'app.asar.unpacked/server/storage/playlists');
                                     } else {
                                         sourcePath = path.join(__dirname, '../../server/storage/playlists');
                                     }
-                                }
-
-                                const destPath = path.join(newPath, 'playlists');
-
-                                try {
-                                    if (fs.existsSync(sourcePath)) {
-                                        // Use cp for recursive copy (Node 16.7+)
-                                        // Electron 28+ uses Node 18+
-                                        await fs.promises.cp(sourcePath, destPath, { recursive: true });
+                                    const destPath = path.join(newPath, 'playlists');
+                                    try {
+                                        if (fs.existsSync(sourcePath)) {
+                                            await fs.promises.cp(sourcePath, destPath, { recursive: true });
+                                        }
+                                    } catch (error) {
+                                        let errorMessage = 'An error occurred while copying default data.';
+                                        if (error.message.includes('EACCES') || error.message.includes('permission denied')) {
+                                            errorMessage = 'Permission denied. Please make sure you have write access to the selected folder.';
+                                        } else if (error.message.includes('ENOSPC')) {
+                                            errorMessage = 'Not enough disk space available to copy default data.';
+                                        } else {
+                                            errorMessage += `\n\nTechnical details: ${error.message}`;
+                                        }
+                                        dialog.showErrorBox('Migration Failed', errorMessage);
+                                        return;
                                     }
-                                } catch (error) {
-                                    dialog.showErrorBox('Migration Failed', `Failed to copy data: ${error.message}`);
-                                    return;
                                 }
                             }
 

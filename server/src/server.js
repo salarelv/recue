@@ -166,36 +166,35 @@ async function startServer(port) {
             logger.error('Upload', 'Upload error:', err);
             reply.code(500).send({ message: 'Upload error: ' + err.message });
         }
-    }
     });
 
-// Add dynamic item
-fastify.post('/api/library/item', async (req, reply) => {
-    const { playlistId, item } = req.body;
-    if (!playlistId || !item) {
-        reply.code(400).send({ error: 'PlaylistId and item required' });
-        return;
-    }
-
-    const MediaManager = require('./managers/MediaManager');
-    if (await MediaManager.addDynamicItem(playlistId, item)) {
-        if (oscManager.wsManager) {
-            const media = await MediaManager.listMedia(playlistId);
-            oscManager.wsManager.broadcastToPlaylist(playlistId, 'library:list', media);
+    // Add dynamic item
+    fastify.post('/api/library/item', async (req, reply) => {
+        const { playlistId, item } = req.body;
+        if (!playlistId || !item) {
+            reply.code(400).send({ error: 'PlaylistId and item required' });
+            return;
         }
-        return { message: 'Item added' };
-    } else {
-        reply.code(500).send({ error: 'Failed to add item' });
-    }
-});
 
-try {
-    await fastify.listen({ port, host: '0.0.0.0' });
-    return fastify;
-} catch (err) {
-    fastify.log.error(err);
-    process.exit(1);
-}
+        const MediaManager = require('./managers/MediaManager');
+        if (await MediaManager.addDynamicItem(playlistId, item)) {
+            if (oscManager.wsManager) {
+                const media = await MediaManager.listMedia(playlistId);
+                oscManager.wsManager.broadcastToPlaylist(playlistId, 'library:list', media);
+            }
+            return { message: 'Item added' };
+        } else {
+            reply.code(500).send({ error: 'Failed to add item' });
+        }
+    });
+
+    try {
+        await fastify.listen({ port, host: '0.0.0.0' });
+        return fastify;
+    } catch (err) {
+        fastify.log.error(err);
+        process.exit(1);
+    }
 }
 
 module.exports = startServer;
