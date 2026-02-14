@@ -17,7 +17,8 @@
     "package": "npm run install:all && npm run build:all && electron-builder",
     "bump:patch": "npm version patch",
     "bump:minor": "npm version minor",
-    "bump:major": "npm version major"
+    "bump:major": "npm version major",
+    "release": "npm version patch && git push --follow-tags"
   },
   "author": "Algosake <recue@root.ee>",
   "license": "ISC",
